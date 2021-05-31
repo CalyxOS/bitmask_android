@@ -21,7 +21,9 @@ import android.app.Notification;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.VpnService;
+import android.os.Binder;
 import android.os.Build;
+import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.system.OsConstants;
 import android.util.Log;
@@ -33,14 +35,13 @@ import java.util.Observer;
 import de.blinkt.openvpn.core.ConnectionStatus;
 import de.blinkt.openvpn.core.VpnStatus;
 import se.leap.bitmaskclient.R;
-import se.leap.bitmaskclient.VpnNotificationManager;
 
-import static se.leap.bitmaskclient.Constants.EIP_ACTION_START_ALWAYS_ON_VPN;
-import static se.leap.bitmaskclient.Constants.EIP_ACTION_START_BLOCKING_VPN;
-import static se.leap.bitmaskclient.Constants.EIP_ACTION_STOP_BLOCKING_VPN;
-import static se.leap.bitmaskclient.Constants.EIP_IS_ALWAYS_ON;
-import static se.leap.bitmaskclient.Constants.SHARED_PREFERENCES;
-import static se.leap.bitmaskclient.utils.ConfigHelper.getProviderFormattedString;
+import static se.leap.bitmaskclient.base.models.Constants.EIP_ACTION_START_ALWAYS_ON_VPN;
+import static se.leap.bitmaskclient.base.models.Constants.EIP_ACTION_START_BLOCKING_VPN;
+import static se.leap.bitmaskclient.base.models.Constants.EIP_ACTION_STOP_BLOCKING_VPN;
+import static se.leap.bitmaskclient.base.models.Constants.EIP_IS_ALWAYS_ON;
+import static se.leap.bitmaskclient.base.models.Constants.SHARED_PREFERENCES;
+import static se.leap.bitmaskclient.base.utils.ConfigHelper.getProviderFormattedString;
 
 
 public class VoidVpnService extends VpnService implements Observer, VpnNotificationManager.VpnServiceCallback {
@@ -54,13 +55,27 @@ public class VoidVpnService extends VpnService implements Observer, VpnNotificat
     private EipStatus eipStatus;
     private VpnNotificationManager notificationManager;
 
+    private final IBinder binder = new VoidVpnServiceBinder();
+    public class VoidVpnServiceBinder extends Binder {
+        VoidVpnService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return VoidVpnService.this;
+        }
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
+
+
+
     @Override
     public void onCreate() {
         super.onCreate();
         eipStatus = EipStatus.getInstance();
         eipStatus.addObserver(this);
-        notificationManager = new VpnNotificationManager(this, this);
-        notificationManager.createVoidVpnNotificationChannel();
+        notificationManager = new VpnNotificationManager(this);
     }
 
     @Override
@@ -78,6 +93,7 @@ public class VoidVpnService extends VpnService implements Observer, VpnNotificat
             thread.run();
         } else if (action.equals("android.net.VpnService") && Build.VERSION.SDK_INT >= ALWAYS_ON_MIN_API_LEVEL) {
             //only always-on feature triggers this
+            startWithForegroundNotification();
             thread = new Thread(new Runnable() {
                 public void run() {
                     establishBlockingVpn();
@@ -100,14 +116,19 @@ public class VoidVpnService extends VpnService implements Observer, VpnNotificat
         closeFd();
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        notificationManager.cancelAll();
+    }
+
     private void stop() {
-        notificationManager.stopNotifications(NOTIFICATION_CHANNEL_NEWSTATUS_ID);
-        notificationManager.deleteNotificationChannel(NOTIFICATION_CHANNEL_NEWSTATUS_ID);
         if (thread != null) {
             thread.interrupt();
         }
         closeFd();
         VpnStatus.updateStateString("NOPROCESS", "BLOCKING VPN STOPPED", R.string.state_noprocess, ConnectionStatus.LEVEL_NOTCONNECTED);
+        stopForeground(true);
     }
 
     public static boolean isRunning() throws NullPointerException {
@@ -186,9 +207,11 @@ public class VoidVpnService extends VpnService implements Observer, VpnNotificat
             notificationManager.buildVoidVpnNotification(
                     blockingMessage,
                     blockingMessage,
-                    eipStatus.getLevel());
+                    eipStatus.getLevel(),
+                    this
+            );
         } else {
-            notificationManager.stopNotifications(NOTIFICATION_CHANNEL_NEWSTATUS_ID);
+            stopForeground(true);
         }
     }
 
@@ -197,9 +220,15 @@ public class VoidVpnService extends VpnService implements Observer, VpnNotificat
         startForeground(notificationId, notification);
     }
 
-    @Override
-    public void onNotificationStop() {
-        stopForeground(true);
+    public void startWithForegroundNotification() {
+        notificationManager.createVoidVpnNotificationChannel();
+        String message = getString(R.string.state_disconnected);
+        notificationManager.buildVoidVpnNotification(
+                message,
+                message,
+                eipStatus.getLevel(),
+                this
+        );
     }
 
 }
