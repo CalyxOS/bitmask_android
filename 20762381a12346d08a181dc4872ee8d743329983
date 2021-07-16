@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "451c279c_c958214f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2021-07-16T13:19:49Z",
+      "side": 1,
+      "message": "Should merge this when we pull in the next upstream update (1.0.10?)\n\nHopefully I get that right the first time.",
+      "revId": "20762381a12346d08a181dc4872ee8d743329983",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    }
+  ]
+}
