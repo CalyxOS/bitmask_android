@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c88a5cff_44210914",
+        "filename": "app/src/custom/res/values/strings.xml",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2021-07-20T15:40:17Z",
+      "side": 1,
+      "message": "provided",
+      "range": {
+        "startLine": 4,
+        "startChar": 175,
+        "endLine": 4,
+        "endChar": 182
+      },
+      "revId": "c03618f7f0dff25336e61a819e7cb0d3654b5563",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    }
+  ]
+}
