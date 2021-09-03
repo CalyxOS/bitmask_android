@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="terms_of_service">Використовуючи цей застосунок, ви погоджуєтеся з Умовами надання послуг, доступними за адресою https://riseup.net/tos. Послуга надається як є, без будь-яких гарантій і призначена для людей, які працюють над тим, щоб зробити світ кращим.</string>
+    <string name="donate_message">Calyx VPN - це проста, хутка і безпечна VPN-служба від Інституту Calyx. Будь ласка, пожертвуйте за адресою https://calyxinstitute.org.</string>
+</resources>
