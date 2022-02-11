@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "92d865dc_acdb48ad",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2022-02-11T08:15:41Z",
+      "side": 1,
+      "message": "PS2 adds calyx.net.pem from https://0xacab.org/leap/bitmask_android/-/merge_requests/166\n\nIt differs from https://gitlab.com/CalyxOS/calyxos/-/issues/895 - however to add that, need to see how to calculate the sha256.",
+      "revId": "e23ce6e535f2bcc4b17f4780274cfcc259b91871",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    }
+  ]
+}
