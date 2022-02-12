@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1799284c_da5db17e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2022-02-12T10:50:12Z",
+      "side": 1,
+      "message": "TODO: Merge 3870: Revert \"[TMP] New tag, new gradle version grabbing code\" | https://review.calyxos.org/c/CalyxOS/bitmask_android/+/3870 and rebase.",
+      "revId": "13cc12af29d6d702c3395f66a073a662486526c5",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    }
+  ]
+}
