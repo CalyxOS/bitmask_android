@@ -16,6 +16,23 @@
       "message": "I always have a hard them building this locally.\n\nSometimes I use the fdroid setup to build this, by updating https://gitlab.com/fdroid/fdroiddata/blob/master/metadata/org.calyxinstitute.vpn.yml and pointing it as this commit to see how that goes.",
       "revId": "0879bfb7a07f328bc0b2cc3f0aaa592e5af36eb4",
       "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f544e7f8_61453212",
+        "filename": "app/build.gradle",
+        "patchSetId": 1
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2023-03-28T19:49:10Z",
+      "side": 1,
+      "message": "New addition, has riseup specific messages.",
+      "revId": "0879bfb7a07f328bc0b2cc3f0aaa592e5af36eb4",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
     }
   ]
 }
