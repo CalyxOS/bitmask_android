@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0cf504c5_f28d25b8",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2023-03-28T19:47:50Z",
+      "side": 1,
+      "message": "I always have a hard them building this locally.\n\nSometimes I use the fdroid setup to build this, by updating https://gitlab.com/fdroid/fdroiddata/blob/master/metadata/org.calyxinstitute.vpn.yml and pointing it as this commit to see how that goes.",
+      "revId": "0879bfb7a07f328bc0b2cc3f0aaa592e5af36eb4",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    }
+  ]
+}
