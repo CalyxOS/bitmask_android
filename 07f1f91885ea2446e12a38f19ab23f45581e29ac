@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5caa3a63_38b8adbb",
+        "filename": "app/src/custom/res/drawable/state_connected.png",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2023-07-10T18:10:46Z",
+      "side": 0,
+      "message": "I wonder how we ended up with a riseup bird in green 😄",
+      "revId": "07f1f91885ea2446e12a38f19ab23f45581e29ac",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    }
+  ]
+}
