@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "dbef2828_d70cbeb9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2023-07-10T18:22:32Z",
+      "side": 1,
+      "message": "Resources fixed in next commit",
+      "revId": "07f1f91885ea2446e12a38f19ab23f45581e29ac",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    }
+  ]
+}
