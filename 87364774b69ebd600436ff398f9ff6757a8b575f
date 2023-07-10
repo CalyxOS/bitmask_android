@@ -33,6 +33,24 @@
       "message": "Need to figure out connecting (three birds and animation) equivalent",
       "revId": "87364774b69ebd600436ff398f9ff6757a8b575f",
       "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "42c3c16c_6eaa6206",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2023-07-10T16:18:14Z",
+      "side": 1,
+      "message": "For now we could have something simple (whatever is feasible)",
+      "parentUuid": "90d03d16_1e76debb",
+      "revId": "87364774b69ebd600436ff398f9ff6757a8b575f",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
     }
   ]
 }
