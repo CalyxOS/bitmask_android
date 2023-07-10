@@ -16,6 +16,23 @@
       "message": "All images are here: https://www.figma.com/file/yWmlEZGXLZ87yzfP8Qo3ul/Calyx\n\nic_motd \u0026 state_disconnected: calyx_logo_bw\nstate_connected: calyx_vpn",
       "revId": "87364774b69ebd600436ff398f9ff6757a8b575f",
       "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "90d03d16_1e76debb",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000065
+      },
+      "writtenOn": "2023-07-10T15:21:41Z",
+      "side": 1,
+      "message": "Need to figure out connecting (three birds and animation) equivalent",
+      "revId": "87364774b69ebd600436ff398f9ff6757a8b575f",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
     }
   ]
 }
