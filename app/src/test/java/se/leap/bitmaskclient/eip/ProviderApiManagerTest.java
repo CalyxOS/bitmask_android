@@ -17,9 +17,51 @@
 
 package se.leap.bitmaskclient.eip;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static se.leap.bitmaskclient.base.models.Constants.BROADCAST_RESULT_KEY;
+import static se.leap.bitmaskclient.base.models.Constants.EIP_ACTION_START;
+import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_KEY;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.CORRECTLY_DOWNLOADED_GEOIP_JSON;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.CORRECTLY_UPDATED_INVALID_VPN_CERTIFICATE;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.ERRORS;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.INCORRECTLY_DOWNLOADED_GEOIP_JSON;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.INCORRECTLY_UPDATED_INVALID_VPN_CERTIFICATE;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.MISSING_NETWORK_CONNECTION;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.PARAMETERS;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.PROVIDER_NOK;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.PROVIDER_OK;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.TOR_EXCEPTION;
+import static se.leap.bitmaskclient.providersetup.ProviderAPI.TOR_TIMEOUT;
+import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_CASE_FETCH_EIP_SERVICE_CERTIFICATE_INVALID;
+import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_CASE_MICONFIGURED_PROVIDER;
+import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_CASE_UPDATED_CERTIFICATE;
+import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_DNS_RESUOLUTION_TOR_FALLBACK;
+import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_GEOIP_SERVICE_IS_DOWN;
+import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_GEOIP_SERVICE_IS_DOWN_TOR_FALLBACK;
+import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.NO_ERROR;
+import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.NO_ERROR_API_V4;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockBase64;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockBundle;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockClientGenerator;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockConfigHelper;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockIntent;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockPreferenceHelper;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockProviderApiConnector;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockRSAHelper;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockResources;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockResultReceiver;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockTextUtils;
+import static se.leap.bitmaskclient.testutils.MockHelper.mockTorStatusObservable;
+import static se.leap.bitmaskclient.testutils.TestSetupHelper.getConfiguredProvider;
+import static se.leap.bitmaskclient.testutils.TestSetupHelper.getConfiguredProviderAPIv4;
+import static se.leap.bitmaskclient.testutils.TestSetupHelper.getProvider;
+
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -50,51 +92,8 @@ import se.leap.bitmaskclient.providersetup.ProviderAPI;
 import se.leap.bitmaskclient.providersetup.ProviderApiConnector;
 import se.leap.bitmaskclient.providersetup.ProviderApiManager;
 import se.leap.bitmaskclient.providersetup.ProviderApiManagerBase;
-import se.leap.bitmaskclient.testutils.MockSharedPreferences;
+import se.leap.bitmaskclient.providersetup.ProviderSetupObservable;
 import se.leap.bitmaskclient.tor.TorStatusObservable;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.mockito.Mockito.when;
-import static se.leap.bitmaskclient.base.models.Constants.BROADCAST_RESULT_KEY;
-import static se.leap.bitmaskclient.base.models.Constants.EIP_ACTION_START;
-import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_KEY;
-import static se.leap.bitmaskclient.base.models.Constants.USE_BRIDGES;
-import static se.leap.bitmaskclient.base.models.Constants.USE_SNOWFLAKE;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.CORRECTLY_DOWNLOADED_GEOIP_JSON;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.CORRECTLY_UPDATED_INVALID_VPN_CERTIFICATE;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.ERRORS;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.INCORRECTLY_DOWNLOADED_GEOIP_JSON;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.INCORRECTLY_UPDATED_INVALID_VPN_CERTIFICATE;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.MISSING_NETWORK_CONNECTION;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.PARAMETERS;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.PROVIDER_NOK;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.PROVIDER_OK;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.TOR_EXCEPTION;
-import static se.leap.bitmaskclient.providersetup.ProviderAPI.TOR_TIMEOUT;
-import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_CASE_FETCH_EIP_SERVICE_CERTIFICATE_INVALID;
-import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_CASE_MICONFIGURED_PROVIDER;
-import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_CASE_UPDATED_CERTIFICATE;
-import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_DNS_RESUOLUTION_TOR_FALLBACK;
-import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_GEOIP_SERVICE_IS_DOWN;
-import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.ERROR_GEOIP_SERVICE_IS_DOWN_TOR_FALLBACK;
-import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.NO_ERROR;
-import static se.leap.bitmaskclient.testutils.BackendMockResponses.BackendMockProvider.TestBackendErrorCase.NO_ERROR_API_V4;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockBase64;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockBundle;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockClientGenerator;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockConfigHelper;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockIntent;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockPreferenceHelper;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockProviderApiConnector;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockResources;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockResultReceiver;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockTextUtils;
-import static se.leap.bitmaskclient.testutils.MockHelper.mockTorStatusObservable;
-import static se.leap.bitmaskclient.testutils.TestSetupHelper.getConfiguredProvider;
-import static se.leap.bitmaskclient.testutils.TestSetupHelper.getConfiguredProviderAPIv4;
-import static se.leap.bitmaskclient.testutils.TestSetupHelper.getInputAsString;
-import static se.leap.bitmaskclient.testutils.TestSetupHelper.getProvider;
 
 
 /**
@@ -102,10 +101,9 @@ import static se.leap.bitmaskclient.testutils.TestSetupHelper.getProvider;
  */
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({ProviderApiManager.class, TextUtils.class, ConfigHelper.class, ProviderApiConnector.class, PreferenceHelper.class, TorStatusObservable.class, android.util.Base64.class})
+@PrepareForTest({ProviderApiManager.class, TextUtils.class, ConfigHelper.RSAHelper.class, ConfigHelper.class, ProviderApiConnector.class, PreferenceHelper.class, TorStatusObservable.class, android.util.Base64.class, ProviderSetupObservable.class})
 public class ProviderApiManagerTest {
 
-    private SharedPreferences mockPreferences;
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private Resources mockResources;
     @Mock(answer =  Answers.RETURNS_DEEP_STUBS)
@@ -165,15 +163,14 @@ public class ProviderApiManagerTest {
         Intent intent = mockIntent();
         PowerMockito.whenNew(Intent.class).withAnyArguments().thenReturn(intent);
         mockTextUtils();
-        mockPreferences = new MockSharedPreferences();
         mockResources = mockResources(getClass().getClassLoader().getResourceAsStream("error_messages.json"));
     }
 
     @Test
     public void test_handleIntentSetupProvider_noProviderMainURL() throws IOException, JSONException {
         Provider provider = new Provider("");
-
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockPreferenceHelper(provider);
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
         Bundle expectedResult = mockBundle();
 
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -192,10 +189,12 @@ public class ProviderApiManagerTest {
     @Test
     public void test_handleIntentSetupProvider_happyPath_preseededProviderAndCA() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, JSONException {
         Provider provider = getConfiguredProvider();
-
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockStatic(ProviderSetupObservable.class);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
         Bundle expectedResult = mockBundle();
 
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, true);
@@ -214,10 +213,12 @@ public class ProviderApiManagerTest {
     @Test
     public void test_handleIntentSetupProvider_happyPath_no_preseededProviderAndCA() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, JSONException {
         Provider provider = getConfiguredProvider();
-
+        mockPreferenceHelper(provider);
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockStatic(ProviderSetupObservable.class);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
         Bundle expectedResult = mockBundle();
 
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, true);
@@ -239,9 +240,9 @@ public class ProviderApiManagerTest {
         mockPreferenceHelper(getConfiguredProvider());
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR);
-        mockPreferences.edit().putString(Provider.KEY + ".riseup.net", getInputAsString(getClass().getClassLoader().getResourceAsStream("riseup.net.json"))).apply();
-        mockPreferences.edit().putString(Provider.CA_CERT + ".riseup.net", getInputAsString(getClass().getClassLoader().getResourceAsStream("riseup.net.pem"))).apply();
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockStatic(ProviderSetupObservable.class);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, true);
@@ -259,9 +260,11 @@ public class ProviderApiManagerTest {
     @Test
     public void test_handleIntentSetupProvider_preseededProviderAndCA_failedCAPinning() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, JSONException {
         Provider provider = getConfiguredProvider();
+
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29495");
         mockProviderApiConnector(NO_ERROR);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
         expectedResult.putString(ERRORS, "{\"errorId\":\"ERROR_CERTIFICATE_PINNING\",\"errors\":\"Stored provider certificate is invalid. You can either update Bitmask (recommended) or update the provider certificate using a commercial CA certificate.\"}");
@@ -281,9 +284,12 @@ public class ProviderApiManagerTest {
     @Test
     public void test_handleIntentSetupProvider_no_preseededProviderAndCA_failedPinning() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, JSONException {
         Provider provider = new Provider("https://riseup.net");
+        mockPreferenceHelper(provider);
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29495");
         mockProviderApiConnector(NO_ERROR);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockStatic(ProviderSetupObservable.class);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -308,9 +314,7 @@ public class ProviderApiManagerTest {
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29495");
 
         mockProviderApiConnector(NO_ERROR);
-        mockPreferences.edit().putString(Provider.KEY + ".riseup.net", getInputAsString(getClass().getClassLoader().getResourceAsStream("riseup.net.json"))).apply();
-        mockPreferences.edit().putString(Provider.CA_CERT + ".riseup.net", getInputAsString(getClass().getClassLoader().getResourceAsStream("riseup.net.pem"))).apply();
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -331,9 +335,10 @@ public class ProviderApiManagerTest {
     @Test
     public void test_handleIntentSetupProvider_preseededProviderAndCA_outdatedCertificate() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, JSONException {
         Provider provider = getProvider(null ,null, null, null, "outdated_cert.pem", null, null, null);
+        mockPreferenceHelper(provider);
         mockProviderApiConnector(NO_ERROR);
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -352,12 +357,12 @@ public class ProviderApiManagerTest {
 
     @Test
     public void test_handleIntentSetupProvider_storedProviderAndCAFromPreviousSetup_outdatedCertificate() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, JSONException {
-        Provider provider = getConfiguredProvider(); //new Provider("https://riseup.net");
+        Provider provider = getProvider(null, null, null, null, "outdated_cert.pem", "riseup.net.json", null, null);
+        mockPreferenceHelper(provider);
+        PreferenceHelper.getEipDefinitionFromPreferences();
         mockProviderApiConnector(NO_ERROR);
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
-        mockPreferences.edit().putString(Provider.KEY + ".riseup.net", getInputAsString(getClass().getClassLoader().getResourceAsStream("riseup.net.json"))).apply();
-        mockPreferences.edit().putString(Provider.CA_CERT + ".riseup.net", getInputAsString(getClass().getClassLoader().getResourceAsStream("outdated_cert.pem"))).apply();
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -381,7 +386,7 @@ public class ProviderApiManagerTest {
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(ERROR_CASE_UPDATED_CERTIFICATE);
 
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
         expectedResult.putString(ERRORS, "{\"errorId\":\"ERROR_INVALID_CERTIFICATE\",\"errors\":\"Stored provider certificate is invalid. You can either update Bitmask (recommended) or update the provider certificate using a commercial CA certificate.\"}");
@@ -404,9 +409,7 @@ public class ProviderApiManagerTest {
         mockPreferenceHelper(getConfiguredProvider());
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(ERROR_CASE_UPDATED_CERTIFICATE);
-        mockPreferences.edit().putString(Provider.KEY + ".riseup.net", getInputAsString(getClass().getClassLoader().getResourceAsStream("riseup.net.json"))).apply();
-        mockPreferences.edit().putString(Provider.CA_CERT + ".riseup.net", getInputAsString(getClass().getClassLoader().getResourceAsStream("riseup.net.pem"))).apply();
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -428,10 +431,13 @@ public class ProviderApiManagerTest {
     public void test_handleIntentSetupProvider_preseededProviderAndCA_failedConfiguration() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, JSONException {
 
         Provider provider = getConfiguredProvider();
+        mockPreferenceHelper(provider);
 
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(ERROR_CASE_MICONFIGURED_PROVIDER);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockStatic(ProviderSetupObservable.class);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -454,12 +460,14 @@ public class ProviderApiManagerTest {
             return;
         }
         Provider provider = getConfiguredProvider();
+        mockPreferenceHelper(provider);
 
         mockProviderApiConnector(ERROR_CASE_MICONFIGURED_PROVIDER);
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         when(ConfigHelper.isDefaultBitmask()).thenReturn(false);
+        mockStatic(ProviderSetupObservable.class);
 
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -480,10 +488,12 @@ public class ProviderApiManagerTest {
     public void test_handleIntentSetupProvider_outdatedPreseededProviderAndCA_successfulConfiguration() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, JSONException {
 
         Provider provider = getProvider(null, null, null, null, null, "riseup_net_outdated_config.json", null, null);
-
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockStatic(ProviderSetupObservable.class);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, true);
@@ -506,10 +516,13 @@ public class ProviderApiManagerTest {
         }
 
         Provider provider = new Provider("https://riseup.net");
+        mockPreferenceHelper(provider);
 
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(ERROR_CASE_FETCH_EIP_SERVICE_CERTIFICATE_INVALID);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockStatic(ProviderSetupObservable.class);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -533,11 +546,12 @@ public class ProviderApiManagerTest {
         }
 
         Provider inputProvider = getConfiguredProvider();
+        mockPreferenceHelper(inputProvider);
         inputProvider.setGeoIpJson(new JSONObject());
         Provider expectedProvider = getConfiguredProvider();
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(EIP_ACTION_START, true);
@@ -565,10 +579,14 @@ public class ProviderApiManagerTest {
         }
 
         Provider provider = getConfiguredProvider();
+        mockPreferenceHelper(provider);
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(ERROR_GEOIP_SERVICE_IS_DOWN);
-        mockPreferences.edit().putBoolean(USE_BRIDGES, false).putBoolean(USE_SNOWFLAKE, false).commit();
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        when(PreferenceHelper.getUseBridges()).thenReturn(false);
+        when(PreferenceHelper.getUseSnowflake()).thenReturn(false);
+        when(PreferenceHelper.hasSnowflakePrefs()).thenReturn(true);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(EIP_ACTION_START, true);
@@ -596,9 +614,10 @@ public class ProviderApiManagerTest {
 
         mockTorStatusObservable(null);
         Provider provider = getConfiguredProvider();
+        mockPreferenceHelper(provider);
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(ERROR_GEOIP_SERVICE_IS_DOWN_TOR_FALLBACK);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(EIP_ACTION_START, true);
@@ -628,9 +647,10 @@ public class ProviderApiManagerTest {
 
         Provider provider = getConfiguredProvider();
         provider.setLastGeoIpUpdate(System.currentTimeMillis());
+        mockPreferenceHelper(provider);
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(EIP_ACTION_START, true);
@@ -658,9 +678,10 @@ public class ProviderApiManagerTest {
         Provider provider = getConfiguredProvider();
         provider.setGeoipUrl(null);
         provider.setGeoIpJson(new JSONObject());
+        mockPreferenceHelper(provider);
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(EIP_ACTION_START, true);
@@ -682,10 +703,12 @@ public class ProviderApiManagerTest {
     @Test
     public void test_handleIntentSetupProvider_APIv4_happyPath() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, JSONException {
         Provider provider = getConfiguredProviderAPIv4();
-
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR_API_V4);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockStatic(ProviderSetupObservable.class);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
         Bundle expectedResult = mockBundle();
 
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, true);
@@ -702,11 +725,16 @@ public class ProviderApiManagerTest {
 
     @Test
     public void test_handleIntentSetupProvider_TorFallback_SecondTryHappyPath() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, TimeoutException, InterruptedException {
+
         Provider provider = getConfiguredProviderAPIv4();
+        mockPreferenceHelper(provider);
+        when(PreferenceHelper.hasSnowflakePrefs()).thenReturn(false);
+        when(PreferenceHelper.getUseSnowflake()).thenReturn(true); // getUseSnowflake() defaults to true if not set
+        mockStatic(ProviderSetupObservable.class);
 
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(ERROR_DNS_RESUOLUTION_TOR_FALLBACK);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Intent providerApiCommand = mockIntent();
         providerApiCommand.putExtra(PROVIDER_KEY, provider);
@@ -723,10 +751,10 @@ public class ProviderApiManagerTest {
     @Test
     public void test_handleIntentSetupProvider_TorFallbackStartServiceException_SecondTryFailed() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, TimeoutException, InterruptedException {
         Provider provider = getConfiguredProviderAPIv4();
-
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(ERROR_DNS_RESUOLUTION_TOR_FALLBACK);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback(new IllegalStateException("Tor service start not failed."), true));
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback(new IllegalStateException("Tor service start not failed."), true));
 
         Intent providerApiCommand = mockIntent();
         providerApiCommand.putExtra(PROVIDER_KEY, provider);
@@ -742,10 +770,10 @@ public class ProviderApiManagerTest {
     @Test
     public void test_handleIntentSetupProvider_TorFallbackTimeoutException_SecondTryFailed() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, TimeoutException, InterruptedException {
         Provider provider = getConfiguredProviderAPIv4();
-
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(ERROR_DNS_RESUOLUTION_TOR_FALLBACK);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Intent providerApiCommand = mockIntent();
         providerApiCommand.putExtra(PROVIDER_KEY, provider);
@@ -762,11 +790,16 @@ public class ProviderApiManagerTest {
     public void test_handleIntentSetupProvider_TorBridgesPreferenceEnabled_Success() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, TimeoutException, InterruptedException {
         Provider provider = getConfiguredProviderAPIv4();
 
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR_API_V4);
+        mockStatic(ProviderSetupObservable.class);
 
-        mockPreferences.edit().putBoolean(USE_BRIDGES, true).putBoolean(USE_SNOWFLAKE, true).commit();
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        when(PreferenceHelper.getUseBridges()).thenReturn(true);
+        when(PreferenceHelper.getUseSnowflake()).thenReturn(true);
+        when(PreferenceHelper.hasSnowflakePrefs()).thenReturn(true);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Intent providerApiCommand = mockIntent();
         providerApiCommand.putExtra(PROVIDER_KEY, provider);
@@ -783,11 +816,16 @@ public class ProviderApiManagerTest {
     public void test_handleIntentSetupProvider_TorBridgesDisabled_TorNotStarted() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, TimeoutException, InterruptedException {
         Provider provider = getConfiguredProviderAPIv4();
 
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR_API_V4);
 
-        mockPreferences.edit().putBoolean(USE_BRIDGES, false).putBoolean(USE_SNOWFLAKE, false).commit();
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockStatic(ProviderSetupObservable.class);
+        when(PreferenceHelper.getUseBridges()).thenReturn(false);
+        when(PreferenceHelper.getUseSnowflake()).thenReturn(false);
+        when(PreferenceHelper.hasSnowflakePrefs()).thenReturn(true);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Intent providerApiCommand = mockIntent();
         providerApiCommand.putExtra(PROVIDER_KEY, provider);
@@ -803,12 +841,15 @@ public class ProviderApiManagerTest {
     @Test
     public void test_handleIntentUpdateVPNCertificate_TorBridgesPreferencesNotConfigured_TorStartedAndSuccess() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, TimeoutException, InterruptedException {
         Provider provider = getConfiguredProviderAPIv4();
-
+        mockPreferenceHelper(provider);
+        when(PreferenceHelper.hasSnowflakePrefs()).thenReturn(false);
+        when(PreferenceHelper.getUseSnowflake()).thenReturn(true);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
+        mockRSAHelper();
         mockBase64();
         mockProviderApiConnector(ERROR_DNS_RESUOLUTION_TOR_FALLBACK);
 
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Intent providerApiCommand = mockIntent();
         providerApiCommand.putExtra(PROVIDER_KEY, provider);
@@ -825,12 +866,15 @@ public class ProviderApiManagerTest {
     public void test_handleIntentUpdateVPNCertificate_TorBridgesPreferencesFalse_TorNotStartedAndFailure() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, TimeoutException, InterruptedException {
         Provider provider = getConfiguredProviderAPIv4();
 
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockBase64();
         mockProviderApiConnector(ERROR_DNS_RESUOLUTION_TOR_FALLBACK);
-        mockPreferences.edit().putBoolean(USE_BRIDGES, false).putBoolean(USE_SNOWFLAKE, false).commit();
+        when(PreferenceHelper.getUseBridges()).thenReturn(false);
+        when(PreferenceHelper.getUseSnowflake()).thenReturn(false);
+        when(PreferenceHelper.hasSnowflakePrefs()).thenReturn(true);
 
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Intent providerApiCommand = mockIntent();
         providerApiCommand.putExtra(PROVIDER_KEY, provider);
@@ -847,12 +891,16 @@ public class ProviderApiManagerTest {
     public void test_handleIntentUpdateVPNCertificate_TorBridgesPreferencesTrue_TorStartedAndSuccess() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, TimeoutException, InterruptedException {
         Provider provider = getConfiguredProviderAPIv4();
 
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockBase64();
+        mockRSAHelper();
         mockProviderApiConnector(NO_ERROR_API_V4);
-        mockPreferences.edit().putBoolean(USE_BRIDGES, true).putBoolean(USE_SNOWFLAKE, true).commit();
+        when(PreferenceHelper.getUseBridges()).thenReturn(true);
+        when(PreferenceHelper.getUseSnowflake()).thenReturn(true);
+        when(PreferenceHelper.hasSnowflakePrefs()).thenReturn(true);
 
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Intent providerApiCommand = mockIntent();
         providerApiCommand.putExtra(PROVIDER_KEY, provider);
@@ -869,12 +917,15 @@ public class ProviderApiManagerTest {
     public void test_handleIntentUpdateVPNCertificate_TorBridgesPreferencesTrue_TorException_Failure() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, TimeoutException, InterruptedException {
         Provider provider = getConfiguredProviderAPIv4();
 
+        mockPreferenceHelper(provider);
         mockConfigHelper(" a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockBase64();
         mockProviderApiConnector(NO_ERROR_API_V4);
-        mockPreferences.edit().putBoolean(USE_BRIDGES, true).putBoolean(USE_SNOWFLAKE, true).commit();
+        when(PreferenceHelper.getUseBridges()).thenReturn(true);
+        when(PreferenceHelper.getUseSnowflake()).thenReturn(true);
+        when(PreferenceHelper.hasSnowflakePrefs()).thenReturn(true);
 
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -896,8 +947,12 @@ public class ProviderApiManagerTest {
     public void test_handleIntentSetupProvider_TorBridgesPreferencesEnabledTimeout_TimeoutError() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, TimeoutException, InterruptedException {
         Provider provider = getConfiguredProviderAPIv4();
 
-        mockPreferences.edit().putBoolean(USE_BRIDGES, true).putBoolean(USE_SNOWFLAKE, true).commit();
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
+        mockPreferenceHelper(provider);
+        when(PreferenceHelper.getUseBridges()).thenReturn(true);
+        when(PreferenceHelper.getUseSnowflake()).thenReturn(true);
+        when(PreferenceHelper.hasSnowflakePrefs()).thenReturn(true);
+
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback());
 
         Bundle expectedResult = mockBundle();
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
@@ -921,7 +976,7 @@ public class ProviderApiManagerTest {
 
         mockConfigHelper("a5244308a1374709a9afce95e3ae47c1b44bc2398c0a70ccbf8b3a8a97f29494");
         mockProviderApiConnector(NO_ERROR);
-        providerApiManager = new ProviderApiManager(mockPreferences, mockResources, mockClientGenerator(), new TestProviderApiServiceCallback(null, false));
+        providerApiManager = new ProviderApiManager(mockResources, mockClientGenerator(), new TestProviderApiServiceCallback(null, false));
         Bundle expectedResult = mockBundle();
 
         expectedResult.putBoolean(BROADCAST_RESULT_KEY, false);
