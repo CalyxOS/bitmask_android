@@ -1,6 +1,5 @@
 package se.leap.bitmaskclient.base;
 
-import static android.content.Context.MODE_PRIVATE;
 import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
 import static androidx.test.espresso.Espresso.onData;
 import static androidx.test.espresso.Espresso.onView;
@@ -15,7 +14,6 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.anything;
 import static org.hamcrest.Matchers.is;
-import static se.leap.bitmaskclient.base.models.Constants.SHARED_PREFERENCES;
 import static utils.CustomInteractions.tryResolve;
 
 import android.app.Instrumentation;
@@ -43,6 +41,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 
 import se.leap.bitmaskclient.R;
+import se.leap.bitmaskclient.base.utils.PreferenceHelper;
 import tools.fastlane.screengrab.Screengrab;
 import tools.fastlane.screengrab.UiAutomatorScreenshotStrategy;
 import tools.fastlane.screengrab.locale.LocaleTestRule;
@@ -63,7 +62,7 @@ public abstract class ProviderBaseTest {
     @Before
     public void setup() {
         Screengrab.setDefaultScreenshotStrategy(new UiAutomatorScreenshotStrategy());
-        SharedPreferences preferences = getApplicationContext().getSharedPreferences(SHARED_PREFERENCES, MODE_PRIVATE);
+        SharedPreferences preferences = PreferenceHelper.getSharedPreferences(getApplicationContext());
         preferences.edit().clear().commit();
         Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
         device = UiDevice.getInstance(instrumentation);

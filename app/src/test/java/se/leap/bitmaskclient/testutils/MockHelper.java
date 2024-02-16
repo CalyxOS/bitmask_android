@@ -26,7 +26,6 @@ import static se.leap.bitmaskclient.base.utils.PreferenceHelper.getStringSetFrom
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -422,17 +421,11 @@ public class MockHelper {
         mockStatic(android.util.Base64.class);
         when(android.util.Base64.encodeToString(any(), anyInt())).thenAnswer(invocation -> Arrays.toString(Base64.getEncoder().encode((byte[]) invocation.getArguments()[0])));
     }
-    public static void mockConfigHelper(String mockedFingerprint) throws CertificateEncodingException, NoSuchAlgorithmException {
-        mockStatic(ConfigHelper.class);
-        when(ConfigHelper.getFingerprintFromCertificate(any(X509Certificate.class), anyString())).thenReturn(mockedFingerprint);
-        when(ConfigHelper.checkErroneousDownload(anyString())).thenCallRealMethod();
-        when(ConfigHelper.parseX509CertificatesFromString(anyString())).thenCallRealMethod();
-        when(ConfigHelper.getProviderFormattedString(any(Resources.class), anyInt())).thenCallRealMethod();
-        when(ConfigHelper.timezoneDistance(anyInt(), anyInt())).thenCallRealMethod();
-        when(ConfigHelper.isIPv4(anyString())).thenCallRealMethod();
-        when(ConfigHelper.isDefaultBitmask()).thenReturn(true);
-        when(ConfigHelper.getDomainFromMainURL(anyString())).thenCallRealMethod();
-        when(ConfigHelper.parseRsaKeyFromString(anyString())).thenReturn(new RSAPrivateKey() {
+
+    public static void mockRSAHelper() {
+        mockStatic(ConfigHelper.RSAHelper.class);
+
+        when(ConfigHelper.RSAHelper.parseRsaKeyFromString(anyString())).thenReturn(new RSAPrivateKey() {
             @Override
             public BigInteger getPrivateExponent() {
                 return BigInteger.TEN;
@@ -460,10 +453,22 @@ public class MockHelper {
         });
     }
 
+    public static void mockConfigHelper(String mockedFingerprint) throws CertificateEncodingException, NoSuchAlgorithmException {
+        mockStatic(ConfigHelper.class);
+        when(ConfigHelper.getFingerprintFromCertificate(any(X509Certificate.class), anyString())).thenReturn(mockedFingerprint);
+        when(ConfigHelper.checkErroneousDownload(anyString())).thenCallRealMethod();
+        when(ConfigHelper.parseX509CertificatesFromString(anyString())).thenCallRealMethod();
+        when(ConfigHelper.getProviderFormattedString(any(Resources.class), anyInt())).thenCallRealMethod();
+        when(ConfigHelper.timezoneDistance(anyInt(), anyInt())).thenCallRealMethod();
+        when(ConfigHelper.isIPv4(anyString())).thenCallRealMethod();
+        when(ConfigHelper.isDefaultBitmask()).thenReturn(true);
+        when(ConfigHelper.getDomainFromMainURL(anyString())).thenCallRealMethod();
+    }
+
     public static void mockPreferenceHelper(final Provider providerFromPrefs) {
         // FIXME use MockSharedPreferences instead of provider
         mockStatic(PreferenceHelper.class);
-        when(getFromPersistedProvider(anyString(), anyString(), any(SharedPreferences.class))).thenAnswer(new Answer<String>() {
+        when(getFromPersistedProvider(anyString(), anyString())).thenAnswer(new Answer<String>() {
             @Override
             public String answer(InvocationOnMock invocation) throws Throwable {
                 String key = (String) invocation.getArguments()[0];
@@ -489,7 +494,7 @@ public class MockHelper {
                 return null;
             }
         });
-        when(getLongFromPersistedProvider(anyString(), anyString(), any(SharedPreferences.class))).thenAnswer(new Answer<Long>() {
+        when(getLongFromPersistedProvider(anyString(), anyString())).thenAnswer(new Answer<Long>() {
             @Override
             public Long answer(InvocationOnMock invocation) throws Throwable {
                 String key = (String) invocation.getArguments()[0];
@@ -502,7 +507,7 @@ public class MockHelper {
                 return 0L;
             }
         });
-        when(getStringSetFromPersistedProvider(anyString(), anyString(), any(SharedPreferences.class))).thenAnswer(new Answer<Set<String>>() {
+        when(getStringSetFromPersistedProvider(anyString(), anyString())).thenAnswer(new Answer<Set<String>>() {
             @Override
             public Set<String> answer(InvocationOnMock invocation) throws Throwable {
                 String key = (String) invocation.getArguments()[0];
@@ -513,14 +518,43 @@ public class MockHelper {
                 return null;
             }
         });
+        when(PreferenceHelper.hasKey(anyString())).then(new Answer<Boolean>() {
+            @Override
+            public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                String key = (String) invocation.getArguments()[0];
+                if (key!= null && key.contains(providerFromPrefs.getDomain()) && !providerFromPrefs.getDomain().isEmpty()) {
+                    key = key.substring(0, key.indexOf(providerFromPrefs.getDomain()) - 1 /* -1 -> "." at the end */);
+                }
+                switch (key) {
+                    case PROVIDER_PRIVATE_KEY:
+                        return providerFromPrefs.getPrivateKey() != null;
+                    case PROVIDER_VPN_CERTIFICATE:
+                        return providerFromPrefs.getVpnCertificate() != null;
+                    case Provider.KEY:
+                        return providerFromPrefs.getDefinition().keys().hasNext();
+                    case Provider.CA_CERT_FINGERPRINT:
+                        return providerFromPrefs.getCaCertFingerprint().length() > 1;
+                    case Provider.CA_CERT:
+                        return providerFromPrefs.getCaCert() != null;
+                    case Provider.GEOIP_URL:
+                        return !providerFromPrefs.getGeoipUrl().isDefault();
+                    case Provider.MOTD_URL:
+                        return !providerFromPrefs.getMotdUrl().isDefault();
+                    case PROVIDER_MOTD:
+                        return providerFromPrefs.getMotdJson().keys().hasNext();
+                }
+                return false;
+            }
+        });
     }
 
     public static void mockPreferenceHelper(MockSharedPreferences preferences) {
         mockStatic(PreferenceHelper.class);
 
-        when(getEipDefinitionFromPreferences(any(SharedPreferences.class))).thenAnswer(new Answer<JSONObject>() {
+        when(getEipDefinitionFromPreferences()).thenAnswer(new Answer<JSONObject>() {
             @Override
             public JSONObject answer(InvocationOnMock invocation) throws Throwable {
+
                 return getEipDefinitionFromPreferences(preferences);
             }
         });
