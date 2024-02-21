@@ -33,6 +33,23 @@
       "message": "If we can setup weblate translations for this, that would be nice as well.",
       "revId": "011e13555a8bca17ccb4cda6a64e330603140b65",
       "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6eb737f9_6aff2eda",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000065
+      },
+      "writtenOn": "2024-02-21T09:29:20Z",
+      "side": 1,
+      "message": "Doesn\u0027t contains changelogs for latest release",
+      "revId": "011e13555a8bca17ccb4cda6a64e330603140b65",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
     }
   ]
 }
