@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e9a1eba9_c308253a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000065
+      },
+      "writtenOn": "2024-02-21T09:24:35Z",
+      "side": 1,
+      "message": "Needs short and full desc removed from F-Droid: https://gitlab.com/fdroid/fdroiddata/-/blob/master/metadata/org.calyxinstitute.vpn.yml",
+      "revId": "011e13555a8bca17ccb4cda6a64e330603140b65",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    }
+  ]
+}
