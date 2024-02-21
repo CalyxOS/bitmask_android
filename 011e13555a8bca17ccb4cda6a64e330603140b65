@@ -50,6 +50,24 @@
       "message": "Doesn\u0027t contains changelogs for latest release",
       "revId": "011e13555a8bca17ccb4cda6a64e330603140b65",
       "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fdeedd5b_a2755661",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2024-02-21T16:18:15Z",
+      "side": 1,
+      "message": "We may have to setup a separate project per file, but maybe there\u0027s a better way - should see what some other apps are doing.\n\nDoes Aurora have this setup and do you have access to the weblate?",
+      "parentUuid": "4cbd034b_e651d030",
+      "revId": "011e13555a8bca17ccb4cda6a64e330603140b65",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
     }
   ]
 }
