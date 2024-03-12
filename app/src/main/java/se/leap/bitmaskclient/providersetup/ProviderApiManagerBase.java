@@ -45,9 +45,10 @@ import static se.leap.bitmaskclient.base.models.Provider.CA_CERT;
 import static se.leap.bitmaskclient.base.models.Provider.GEOIP_URL;
 import static se.leap.bitmaskclient.base.models.Provider.PROVIDER_API_IP;
 import static se.leap.bitmaskclient.base.models.Provider.PROVIDER_IP;
-import static se.leap.bitmaskclient.base.utils.ConfigHelper.RSAHelper.parseRsaKeyFromString;
+import static se.leap.bitmaskclient.base.utils.ConfigHelper.getTorTimeout;
+import static se.leap.bitmaskclient.base.utils.RSAHelper.parseRsaKeyFromString;
 import static se.leap.bitmaskclient.base.utils.ConfigHelper.getDomainFromMainURL;
-import static se.leap.bitmaskclient.base.utils.ConfigHelper.getFingerprintFromCertificate;
+import static se.leap.bitmaskclient.base.utils.CertificateHelper.getFingerprintFromCertificate;
 import static se.leap.bitmaskclient.base.utils.ConfigHelper.getProviderFormattedString;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.deleteProviderDetailsFromPreferences;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.getFromPersistedProvider;
@@ -169,6 +170,7 @@ public abstract class ProviderApiManagerBase {
         void stopTorService();
         int getTorHttpTunnelPort();
         boolean hasNetworkConnection();
+        void saveProvider(Provider p);
     }
 
     private final ProviderApiServiceCallback serviceCallback;
@@ -294,6 +296,7 @@ public abstract class ProviderApiManagerBase {
                 ProviderObservable.getInstance().setProviderForDns(provider);
                 result = updateVpnCertificate(provider);
                 if (result.getBoolean(BROADCAST_RESULT_KEY)) {
+                    serviceCallback.saveProvider(provider);
                     ProviderSetupObservable.updateProgress(DOWNLOADED_VPN_CERTIFICATE);
                     sendToReceiverOrBroadcast(receiver, CORRECTLY_DOWNLOADED_VPN_CERTIFICATE, result, provider);
                 } else {
@@ -361,6 +364,10 @@ public abstract class ProviderApiManagerBase {
         }
     }
 
+    private void saveCustomProvider() {
+
+    }
+
     protected boolean startTorProxy() throws InterruptedException, IllegalStateException, TimeoutException {
         if (EipStatus.getInstance().isDisconnected() &&
                 PreferenceHelper.getUseSnowflake() &&
@@ -380,7 +387,7 @@ public abstract class ProviderApiManagerBase {
         if (TorStatusObservable.getStatus() == ON) {
             return;
         }
-        TorStatusObservable.waitUntil(this::isTorOnOrCancelled, 180);
+        TorStatusObservable.waitUntil(this::isTorOnOrCancelled, getTorTimeout());
     }
 
     private boolean isTorOnOrCancelled() {
@@ -1138,9 +1145,13 @@ public abstract class ProviderApiManagerBase {
 
         String deleteUrl = provider.getApiUrlWithVersion() + "/logout";
 
-        if (ProviderApiConnector.delete(okHttpClient, deleteUrl)) {
-            LeapSRPSession.setToken("");
-            return true;
+        try {
+            if (ProviderApiConnector.delete(okHttpClient, deleteUrl)) {
+                LeapSRPSession.setToken("");
+                return true;
+            }
+        } catch (IOException e) {
+            // eat me
         }
         return false;
     }

@@ -1,8 +1,7 @@
 package se.leap.bitmaskclient.providersetup.fragments;
 
-import static se.leap.bitmaskclient.base.utils.ConfigHelper.isDefaultBitmask;
+import static se.leap.bitmaskclient.base.utils.BuildConfigHelper.isDefaultBitmask;
 
-import android.content.Context;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -17,7 +16,6 @@ import se.leap.bitmaskclient.base.utils.PreferenceHelper;
 import se.leap.bitmaskclient.databinding.FCircumventionSetupBinding;
 import se.leap.bitmaskclient.providersetup.ProviderManager;
 import se.leap.bitmaskclient.providersetup.activities.CancelCallback;
-import se.leap.bitmaskclient.providersetup.activities.SetupActivityCallback;
 
 public class CircumventionSetupFragment extends BaseSetupFragment implements CancelCallback {
 
@@ -80,8 +78,7 @@ public class CircumventionSetupFragment extends BaseSetupFragment implements Can
     }
 
     private void loadProviderFromAssets() {
-        ProviderManager providerManager = ProviderManager.getInstance(getContext().getApplicationContext().getAssets(),
-                getContext().getExternalFilesDir(null));
+        ProviderManager providerManager = ProviderManager.getInstance(getContext().getApplicationContext().getAssets());
         providerManager.setAddDummyEntry(false);
         setupActivityCallback.onProviderSelected(providerManager.providers().get(0));
     }

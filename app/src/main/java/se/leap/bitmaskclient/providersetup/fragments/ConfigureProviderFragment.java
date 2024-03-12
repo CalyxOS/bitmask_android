@@ -4,12 +4,13 @@ import static android.app.Activity.RESULT_CANCELED;
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
 import static androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE;
+import static se.leap.bitmaskclient.R.string.app_name;
 import static se.leap.bitmaskclient.R.string.description_configure_provider;
 import static se.leap.bitmaskclient.R.string.description_configure_provider_circumvention;
 import static se.leap.bitmaskclient.base.models.Constants.BROADCAST_RESULT_CODE;
 import static se.leap.bitmaskclient.base.models.Constants.BROADCAST_RESULT_KEY;
 import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_KEY;
-import static se.leap.bitmaskclient.base.utils.ConfigHelper.isDefaultBitmask;
+import static se.leap.bitmaskclient.base.utils.BuildConfigHelper.isDefaultBitmask;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.getUseSnowflake;
 import static se.leap.bitmaskclient.base.utils.ViewHelper.animateContainerVisibility;
 import static se.leap.bitmaskclient.providersetup.ProviderAPI.CORRECTLY_DOWNLOADED_VPN_CERTIFICATE;
@@ -42,9 +43,9 @@ import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.List;
-import java.util.Observable;
-import java.util.Observer;
 
 import se.leap.bitmaskclient.R;
 import se.leap.bitmaskclient.base.models.Provider;
@@ -57,7 +58,7 @@ import se.leap.bitmaskclient.providersetup.TorLogAdapter;
 import se.leap.bitmaskclient.providersetup.activities.CancelCallback;
 import se.leap.bitmaskclient.tor.TorStatusObservable;
 
-public class ConfigureProviderFragment extends BaseSetupFragment implements Observer, CancelCallback, EipSetupListener {
+public class ConfigureProviderFragment extends BaseSetupFragment implements PropertyChangeListener, CancelCallback, EipSetupListener {
 
     private static final String TAG = ConfigureProviderFragment.class.getSimpleName();
 
@@ -86,7 +87,7 @@ public class ConfigureProviderFragment extends BaseSetupFragment implements Obse
                              @Nullable Bundle savedInstanceState) {
         binding = FConfigureProviderBinding.inflate(inflater, container, false);
         binding.detailContainer.setVisibility(getUseSnowflake() ? VISIBLE : GONE);
-        binding.tvCircumventionDescription.setText(getUseSnowflake() ? description_configure_provider_circumvention : description_configure_provider);
+        binding.tvCircumventionDescription.setText(getUseSnowflake() ? getString(description_configure_provider_circumvention, getString(app_name)) : getString(description_configure_provider, getString(app_name)));
         binding.detailHeaderContainer.setOnClickListener(v -> {
             binding.ivExpand.animate().setDuration(250).rotation(isExpanded ? -90 : 0);
             showConnectionDetails();
@@ -123,7 +124,7 @@ public class ConfigureProviderFragment extends BaseSetupFragment implements Obse
         super.onFragmentSelected();
         ignoreProviderAPIUpdates = false;
         binding.detailContainer.setVisibility(getUseSnowflake() ? VISIBLE : GONE);
-        binding.tvCircumventionDescription.setText(getUseSnowflake() ? description_configure_provider_circumvention : description_configure_provider);
+        binding.tvCircumventionDescription.setText(getUseSnowflake() ? getString(description_configure_provider_circumvention, getString(app_name)) : getString(description_configure_provider, getString(app_name)));
         if (!isDefaultBitmask()) {
             Drawable drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.setup_progress_spinner, null);
             binding.progressSpinner.setAnimatedSpinnerDrawable(drawable);
@@ -158,8 +159,8 @@ public class ConfigureProviderFragment extends BaseSetupFragment implements Obse
     }
 
     @Override
-    public void update(Observable o, Object arg) {
-        if (o instanceof ProviderSetupObservable) {
+    public void propertyChange(PropertyChangeEvent evt) {
+        if (ProviderSetupObservable.PROPERTY_CHANGE.equals(evt.getPropertyName())) {
             Activity activity = getActivity();
             if (activity == null || binding == null) {
                 return;
@@ -206,7 +207,7 @@ public class ConfigureProviderFragment extends BaseSetupFragment implements Obse
         if (ignoreProviderAPIUpdates ||
                 provider == null ||
                 (setupActivityCallback.getSelectedProvider() != null &&
-                !setupActivityCallback.getSelectedProvider().getDomain().equals(provider.getDomain()))) {
+                !setupActivityCallback.getSelectedProvider().getMainUrlString().equals(provider.getMainUrlString()))) {
             return;
         }
 
@@ -222,7 +223,9 @@ public class ConfigureProviderFragment extends BaseSetupFragment implements Obse
                 setupActivityCallback.onProviderSelected(provider);
                 handler.postDelayed(() -> {
                     if (!ProviderSetupObservable.isCanceled()) {
-                        setupActivityCallback.onConfigurationSuccess();
+                        if (setupActivityCallback != null) {
+                            setupActivityCallback.onConfigurationSuccess();
+                        }
                     }
                 }, 750);
                 break;

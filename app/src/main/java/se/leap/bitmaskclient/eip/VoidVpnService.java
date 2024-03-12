@@ -16,6 +16,7 @@
  */
 package se.leap.bitmaskclient.eip;
 
+import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED;
 import static se.leap.bitmaskclient.base.models.Constants.EIP_ACTION_START_ALWAYS_ON_VPN;
 import static se.leap.bitmaskclient.base.models.Constants.EIP_ACTION_START_BLOCKING_VPN;
 import static se.leap.bitmaskclient.base.models.Constants.EIP_ACTION_STOP_BLOCKING_VPN;
@@ -33,9 +34,11 @@ import android.os.ParcelFileDescriptor;
 import android.system.OsConstants;
 import android.util.Log;
 
+import androidx.core.app.ServiceCompat;
+
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
-import java.util.Observable;
-import java.util.Observer;
 
 import de.blinkt.openvpn.core.ConnectionStatus;
 import de.blinkt.openvpn.core.VpnStatus;
@@ -43,7 +46,7 @@ import se.leap.bitmaskclient.R;
 import se.leap.bitmaskclient.base.utils.PreferenceHelper;
 
 
-public class VoidVpnService extends VpnService implements Observer, VpnNotificationManager.VpnServiceCallback {
+public class VoidVpnService extends VpnService implements PropertyChangeListener, VpnNotificationManager.VpnServiceCallback {
 
     static final String TAG = VoidVpnService.class.getSimpleName();
     private ParcelFileDescriptor fd;
@@ -183,10 +186,11 @@ public class VoidVpnService extends VpnService implements Observer, VpnNotificat
         getApplicationContext().startService(startEIP);
     }
 
+
     @Override
-    public void update(Observable observable, Object arg) {
-        if (observable instanceof EipStatus) {
-            eipStatus = (EipStatus) observable;
+    public void propertyChange(PropertyChangeEvent evt) {
+        if (EipStatus.PROPERTY_CHANGE.equals(evt.getPropertyName())) {
+            eipStatus = (EipStatus) evt.getNewValue();
         }
         if (handlerThread.isInterrupted() || !handlerThread.isAlive()) {
             return;
@@ -207,7 +211,7 @@ public class VoidVpnService extends VpnService implements Observer, VpnNotificat
 
     @Override
     public void onNotificationBuild(int notificationId, Notification notification) {
-        startForeground(notificationId, notification);
+        ServiceCompat.startForeground(this, notificationId, notification, FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED);
     }
 
     public void startWithForegroundNotification() {

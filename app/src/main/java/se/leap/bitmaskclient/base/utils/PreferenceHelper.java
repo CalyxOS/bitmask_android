@@ -7,6 +7,7 @@ import static se.leap.bitmaskclient.base.models.Constants.ALLOW_TETHERING_USB;
 import static se.leap.bitmaskclient.base.models.Constants.ALLOW_TETHERING_WIFI;
 import static se.leap.bitmaskclient.base.models.Constants.ALWAYS_ON_SHOW_DIALOG;
 import static se.leap.bitmaskclient.base.models.Constants.CLEARLOG;
+import static se.leap.bitmaskclient.base.models.Constants.CUSTOM_PROVIDER_DOMAINS;
 import static se.leap.bitmaskclient.base.models.Constants.DEFAULT_SHARED_PREFS_BATTERY_SAVER;
 import static se.leap.bitmaskclient.base.models.Constants.EIP_IS_ALWAYS_ON;
 import static se.leap.bitmaskclient.base.models.Constants.EIP_RESTART_ON_BOOT;
@@ -40,6 +41,7 @@ import static se.leap.bitmaskclient.base.models.Constants.USE_BRIDGES;
 import static se.leap.bitmaskclient.base.models.Constants.USE_IPv6_FIREWALL;
 import static se.leap.bitmaskclient.base.models.Constants.USE_OBFUSCATION_PINNING;
 import static se.leap.bitmaskclient.base.models.Constants.USE_SNOWFLAKE;
+import static se.leap.bitmaskclient.base.models.Constants.USE_SYSTEM_PROXY;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -58,6 +60,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -184,8 +187,49 @@ public class PreferenceHelper {
         }
     }
 
+    /**
+     *
+     * @return HashMap with main URL string as key and Provider as value
+     */
+    public static HashMap<String, Provider> getCustomProviders() {
+        Set<String> providerDomains = getCustomProviderDomains();
+        HashMap<String, Provider> customProviders = new HashMap<>();
+        for (String domain : providerDomains) {
+            String mainURL = preferences.getString(Provider.MAIN_URL + "." + domain, null);
+            if (mainURL != null) {
+                customProviders.put(mainURL, Provider.createCustomProvider(mainURL, domain));
+            }
+        }
+        return customProviders;
+    }
+
+    public static void setCustomProviders(Set<Provider> providers) {
+        Set<String> newProviderDomains = new HashSet<>();
+
+        // add
+        SharedPreferences.Editor editor = preferences.edit();
+        for (Provider provider : providers) {
+            String providerDomain = provider.getDomain();
+                    editor.putString(Provider.MAIN_URL + "." + providerDomain, provider.getMainUrlString());
+            newProviderDomains.add(providerDomain);
+        }
+
+        // remove
+        Set<String> removedProviderDomains = getCustomProviderDomains();
+        removedProviderDomains.removeAll(newProviderDomains);
+        for (String providerDomain : removedProviderDomains) {
+            editor.remove(Provider.MAIN_URL + "." + providerDomain);
+        }
+
+        editor.putStringSet(CUSTOM_PROVIDER_DOMAINS, newProviderDomains);
+        editor.apply();
+    }
+
+    static Set<String> getCustomProviderDomains() {
+        return preferences.getStringSet(CUSTOM_PROVIDER_DOMAINS, new HashSet<>());
+    }
+
     // TODO: replace commit with apply after refactoring EIP
-    //FIXME: don't save private keys in shared preferences! use the keystore
     public static void storeProviderInPreferences(Provider provider, boolean async) {
         synchronized (LOCK) {
             SharedPreferences.Editor editor = preferences.edit();
@@ -460,12 +504,16 @@ public class PreferenceHelper {
         return getBoolean(ALLOW_EXPERIMENTAL_TRANSPORTS, false);
     }
 
+    public static boolean useSystemProxy() {
+        return getBoolean(USE_SYSTEM_PROXY, true);
+    }
+
     public static void setUseObfuscationPinning(Boolean pinning) {
         putBoolean(USE_OBFUSCATION_PINNING, pinning);
     }
 
     public static boolean useObfuscationPinning() {
-        return ConfigHelper.ObfsVpnHelper.useObfsVpn() &&
+        return BuildConfigHelper.useObfsVpn() &&
                 getUseBridges() &&
                 getBoolean(USE_OBFUSCATION_PINNING, false) &&
                 !TextUtils.isEmpty(getObfuscationPinningIP()) &&
