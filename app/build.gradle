@@ -32,8 +32,8 @@ android {
     // the factor 1000 is used so that gplay users can upgrade from split apks ((current version number - 1) * 1000) + n
     // to extracted bundle apks, supplied by google
     // however we don't calculate the versionCode here, because F-Droid doesn't like that
-    versionCode 174000
-    versionName "1.4.0RC1"
+    versionCode 176000
+    versionName "1.4.1"
     compileSdk 34
     minSdkVersion 21
     targetSdkVersion 34
@@ -59,9 +59,10 @@ android {
     //allow manual gateway selection
     buildConfigField 'boolean', 'allow_manual_gateway_selection', 'true'
     // obfsvpn Debugging config fields to pin and configure a particular proxy
+    // demo.bitmask.net provider
     buildConfigField "String", "obfsvpn_port", '"4431"'
-    buildConfigField "String", "obfsvpn_ip", '"135.181.37.103"'
-    buildConfigField "String", "obfsvpn_cert", '"yHHrr2JHssNIF2o7fbmcDmmGfGq6uJIUBnUK6jWm6/5s30VBjwBSgIXDV/+sDxUMc0kCSw"'
+    buildConfigField "String", "obfsvpn_ip", '"37.218.241.208"'
+    buildConfigField "String", "obfsvpn_cert", '"k0L4LFg0Wk98v7P66xvgAx2ud+kggvjZX/qul3iFTJGH5X7xSHT+vVL4UZR0WI3SkmDzUg"'
     buildConfigField 'boolean', 'obfsvpn_use_kcp', 'true'
     // default to UDP usage
     buildConfigField 'boolean', 'prefer_udp', 'false'
@@ -374,15 +375,16 @@ android {
   }
 }
 
-
-
-
 dependencies {
   testImplementation 'junit:junit:4.13.2'
   //outdated mockito-core version due to powermock dependency
   testImplementation 'org.mockito:mockito-core:3.6.0'
   testImplementation('org.powermock:powermock-api-mockito2:2.0.9')
        //   { exclude group: 'junit' exclude group: 'org.mockito' }
+
+  testImplementation 'org.robolectric:robolectric:4.13'
+  testImplementation 'org.conscrypt:conscrypt-openjdk-uber:2.5.2'
+
   testImplementation 'org.powermock:powermock-module-junit4:2.0.9'
   testImplementation 'org.powermock:powermock-core:2.0.9'
   testImplementation 'org.powermock:powermock-module-junit4-rule:2.0.9'
