@@ -40,6 +40,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.core.os.BundleCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -48,7 +49,9 @@ import java.beans.PropertyChangeListener;
 import java.util.List;
 
 import se.leap.bitmaskclient.R;
+import se.leap.bitmaskclient.base.models.Constants;
 import se.leap.bitmaskclient.base.models.Provider;
+import se.leap.bitmaskclient.base.utils.PreferenceHelper;
 import se.leap.bitmaskclient.databinding.FConfigureProviderBinding;
 import se.leap.bitmaskclient.eip.EipSetupListener;
 import se.leap.bitmaskclient.eip.EipSetupObserver;
@@ -136,7 +139,9 @@ public class ConfigureProviderFragment extends BaseSetupFragment implements Prop
             handleResult(ProviderSetupObservable.getResultCode(), ProviderSetupObservable.getResultData(), true);
         } else {
             ProviderSetupObservable.startSetup();
-            ProviderAPICommand.execute(getContext(), SET_UP_PROVIDER, setupActivityCallback.getSelectedProvider());
+            Bundle parameters = new Bundle();
+            parameters.putString(Constants.COUNTRYCODE, PreferenceHelper.getBaseCountry());
+            ProviderAPICommand.execute(getContext(), SET_UP_PROVIDER, parameters, setupActivityCallback.getSelectedProvider());
         }
     }
 
@@ -211,34 +216,31 @@ public class ConfigureProviderFragment extends BaseSetupFragment implements Prop
     }
 
     private void handleResult(int resultCode, Bundle resultData, boolean resumeSetup) {
-        Provider provider = resultData.getParcelable(PROVIDER_KEY);
+        Provider provider = BundleCompat.getParcelable(resultData, PROVIDER_KEY, Provider.class);
+
         if (ignoreProviderAPIUpdates ||
                 provider == null ||
                 (setupActivityCallback.getSelectedProvider() != null &&
-                        !setupActivityCallback.getSelectedProvider().getMainUrlString().equals(provider.getMainUrlString()))) {
+                        !setupActivityCallback.getSelectedProvider().getMainUrl().equals(provider.getMainUrl()))) {
             return;
         }
 
         switch (resultCode) {
             case PROVIDER_OK:
                 setupActivityCallback.onProviderSelected(provider);
-                if (provider.allowsAnonymous()) {
-                    ProviderAPICommand.execute(this.getContext(), DOWNLOAD_VPN_CERTIFICATE, provider);
+                if (provider.getApiVersion() < 5) {
+                    if (provider.allowsAnonymous()) {
+                        ProviderAPICommand.execute(this.getContext(), DOWNLOAD_VPN_CERTIFICATE, provider);
+                    } else {
+                        // TODO: implement error message that this client only supports anonymous usage
+                    }
                 } else {
-                    // TODO: implement error message that this client only supports anonymous usage
+                    sendSuccess(resumeSetup);
                 }
                 break;
             case CORRECTLY_DOWNLOADED_VPN_CERTIFICATE:
                 setupActivityCallback.onProviderSelected(provider);
-                handler.postDelayed(() -> {
-                    if (!ProviderSetupObservable.isCanceled()) {
-                        try {
-                            setupActivityCallback.onConfigurationSuccess();
-                        } catch (NullPointerException npe) {
-                            // callback disappeared in the meanwhile
-                        }
-                    }
-                }, resumeSetup ? 0 : 750);
+                sendSuccess(resumeSetup);
                 break;
             case PROVIDER_NOK:
             case INCORRECTLY_DOWNLOADED_VPN_CERTIFICATE:
@@ -252,4 +254,15 @@ public class ConfigureProviderFragment extends BaseSetupFragment implements Prop
         }
     }
 
+    private void sendSuccess(boolean resumeSetup) {
+        handler.postDelayed(() -> {
+            if (!ProviderSetupObservable.isCanceled()) {
+                try {
+                    setupActivityCallback.onConfigurationSuccess();
+                } catch (NullPointerException npe) {
+                    // callback disappeared in the meanwhile
+                }
+            }
+        }, resumeSetup ? 0 : 750);
+    }
 }

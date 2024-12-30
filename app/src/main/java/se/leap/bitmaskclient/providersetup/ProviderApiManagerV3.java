@@ -17,7 +17,6 @@
 
 package se.leap.bitmaskclient.providersetup;
 
-import static android.text.TextUtils.isEmpty;
 import static se.leap.bitmaskclient.BuildConfig.DEBUG_MODE;
 import static se.leap.bitmaskclient.R.string.certificate_error;
 import static se.leap.bitmaskclient.R.string.downloading_vpn_certificate_failed;
@@ -29,6 +28,7 @@ import static se.leap.bitmaskclient.R.string.server_unreachable_message;
 import static se.leap.bitmaskclient.R.string.service_is_down_error;
 import static se.leap.bitmaskclient.R.string.setup_error_text;
 import static se.leap.bitmaskclient.R.string.setup_error_text_custom;
+import static se.leap.bitmaskclient.R.string.vpn_certificate_is_invalid;
 import static se.leap.bitmaskclient.R.string.warning_corrupted_provider_cert;
 import static se.leap.bitmaskclient.R.string.warning_corrupted_provider_details;
 import static se.leap.bitmaskclient.R.string.warning_expired_provider_cert;
@@ -39,6 +39,8 @@ import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_VPN_CERTIFICA
 import static se.leap.bitmaskclient.base.utils.BuildConfigHelper.isDefaultBitmask;
 import static se.leap.bitmaskclient.base.utils.CertificateHelper.getFingerprintFromCertificate;
 import static se.leap.bitmaskclient.base.utils.ConfigHelper.getProviderFormattedString;
+import static se.leap.bitmaskclient.base.utils.PrivateKeyHelper.getPEMFormattedPrivateKey;
+import static se.leap.bitmaskclient.base.utils.PrivateKeyHelper.parsePrivateKeyFromString;
 import static se.leap.bitmaskclient.providersetup.ProviderAPI.CORRECTLY_DOWNLOADED_EIP_SERVICE;
 import static se.leap.bitmaskclient.providersetup.ProviderAPI.CORRECTLY_DOWNLOADED_GEOIP_JSON;
 import static se.leap.bitmaskclient.providersetup.ProviderAPI.CORRECTLY_DOWNLOADED_VPN_CERTIFICATE;
@@ -71,6 +73,7 @@ import static se.leap.bitmaskclient.tor.TorStatusObservable.getProxyPort;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.ResultReceiver;
+import android.util.Base64;
 import android.util.Log;
 import android.util.Pair;
 
@@ -87,7 +90,9 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.net.UnknownServiceException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
@@ -202,7 +207,7 @@ public class ProviderApiManagerV3 extends ProviderApiManagerBase implements IPro
                 ProviderObservable.getInstance().setProviderForDns(null);
                 break;
             case DOWNLOAD_GEOIP_JSON:
-                if (!provider.getGeoipUrl().isDefault()) {
+                if (!provider.getGeoipUrl().isEmpty()) {
                     boolean startEIP = parameters.getBoolean(EIP_ACTION_START);
                     ProviderObservable.getInstance().setProviderForDns(provider);
                     result = getGeoIPJson(provider);
@@ -227,16 +232,14 @@ public class ProviderApiManagerV3 extends ProviderApiManagerBase implements IPro
     public Bundle setupProvider(Provider provider, Bundle task) {
         Bundle currentDownload = new Bundle();
 
-        if (isEmpty(provider.getMainUrlString()) || provider.getMainUrl().isDefault()) {
+        if (provider.getMainUrl().isEmpty()) {
             currentDownload.putBoolean(BROADCAST_RESULT_KEY, false);
             eventSender.setErrorResult(currentDownload, malformed_url, null);
             VpnStatus.logWarning("[API] MainURL String is not set. Cannot setup provider.");
             return currentDownload;
         }
 
-        getPersistedProviderUpdates(provider);
         currentDownload = validateProviderDetails(provider);
-
         //provider certificate invalid
         if (currentDownload.containsKey(ERRORS)) {
             currentDownload.putParcelable(PROVIDER_KEY, provider);
@@ -248,13 +251,15 @@ public class ProviderApiManagerV3 extends ProviderApiManagerBase implements IPro
             resetProviderDetails(provider);
         }
 
-        currentDownload = getAndSetProviderJson(provider);
-        if (provider.hasDefinition() || (currentDownload.containsKey(BROADCAST_RESULT_KEY) && currentDownload.getBoolean(BROADCAST_RESULT_KEY))) {
+        if (!provider.hasDefinition()) {
+            currentDownload = getAndSetProviderJson(provider);
+        }
+        if (provider.hasDefinition()) {
             ProviderSetupObservable.updateProgress(DOWNLOADED_PROVIDER_JSON);
             if (!provider.hasCaCert()) {
                 currentDownload = downloadCACert(provider);
             }
-            if (provider.hasCaCert() || (currentDownload.containsKey(BROADCAST_RESULT_KEY) && currentDownload.getBoolean(BROADCAST_RESULT_KEY))) {
+            if (provider.hasCaCert()) {
                 ProviderSetupObservable.updateProgress(DOWNLOADED_CA_CERT);
                 currentDownload = getAndSetEipServiceJson(provider);
             }
@@ -274,7 +279,7 @@ public class ProviderApiManagerV3 extends ProviderApiManagerBase implements IPro
 
         String providerDotJsonString;
         if(provider.getDefinitionString().length() == 0 || provider.getCaCert().isEmpty()) {
-            String providerJsonUrl = provider.getMainUrlString() + "/provider.json";
+            String providerJsonUrl = provider.getMainUrl() + "/provider.json";
             providerDotJsonString = downloadWithCommercialCA(providerJsonUrl, provider);
         } else {
             providerDotJsonString = downloadFromApiUrlWithProviderCA("/provider.json", provider);
@@ -355,6 +360,41 @@ public class ProviderApiManagerV3 extends ProviderApiManagerBase implements IPro
         return loadCertificate(provider, certString);
     }
 
+    private Bundle loadCertificate(Provider provider, String certString) {
+        Bundle result = new Bundle();
+        if (certString == null) {
+            eventSender.setErrorResult(result, vpn_certificate_is_invalid, null);
+            return result;
+        }
+
+        try {
+            // API returns concatenated cert & key.  Split them for OpenVPN options
+            String certificateString = null, keyString = null;
+            String[] certAndKey = certString.split("(?<=-\n)");
+
+            for (int i = 0; i < certAndKey.length - 1; i++) {
+                if (certAndKey[i].contains("KEY")) {
+                    keyString = certAndKey[i++] + certAndKey[i];
+                } else if (certAndKey[i].contains("CERTIFICATE")) {
+                    certificateString = certAndKey[i++] + certAndKey[i];
+                }
+            }
+
+            PrivateKey key = parsePrivateKeyFromString(keyString);
+            provider.setPrivateKeyString(getPEMFormattedPrivateKey(key));
+
+            ArrayList<X509Certificate> certificates = ConfigHelper.parseX509CertificatesFromString(certificateString);
+            certificates.get(0).checkValidity();
+            certificateString = Base64.encodeToString(certificates.get(0).getEncoded(), Base64.DEFAULT);
+            provider.setVpnCertificate( "-----BEGIN CERTIFICATE-----\n" + certificateString + "-----END CERTIFICATE-----");
+            result.putBoolean(BROADCAST_RESULT_KEY, true);
+        } catch (CertificateException | NullPointerException e) {
+            e.printStackTrace();
+            eventSender.setErrorResult(result, vpn_certificate_is_invalid, null);
+        }
+        return result;
+    }
+
     /**
      * Fetches the geo ip Json, containing a list of gateways sorted by distance from the users current location.
      * Fetching is only allowed if the cache timeout of 1 h was reached, a valid geoip service URL exists and the
@@ -367,13 +407,13 @@ public class ProviderApiManagerV3 extends ProviderApiManagerBase implements IPro
     private Bundle getGeoIPJson(Provider provider) {
         Bundle result = new Bundle();
 
-        if (!provider.shouldUpdateGeoIpJson() || provider.getGeoipUrl().isDefault() || VpnStatus.isVPNActive() || TorStatusObservable.getStatus() != OFF) {
+        if (!provider.shouldUpdateGeoIpJson() || provider.getGeoipUrl().isEmpty() || VpnStatus.isVPNActive() || TorStatusObservable.getStatus() != OFF) {
             result.putBoolean(BROADCAST_RESULT_KEY, false);
             return result;
         }
 
         try {
-            URL geoIpUrl = provider.getGeoipUrl().getUrl();
+            URL geoIpUrl = new URL(provider.getGeoipUrl());
 
             String geoipJsonString = downloadFromUrlWithProviderCA(geoIpUrl.toString(), provider, false);
             if (DEBUG_MODE) {
@@ -389,7 +429,7 @@ public class ProviderApiManagerV3 extends ProviderApiManagerBase implements IPro
                 result.putBoolean(BROADCAST_RESULT_KEY, true);
             }
 
-        } catch (JSONException | NullPointerException e) {
+        } catch (JSONException | NullPointerException | MalformedURLException e) {
             result.putBoolean(BROADCAST_RESULT_KEY, false);
             e.printStackTrace();
         }
@@ -477,7 +517,7 @@ public class ProviderApiManagerV3 extends ProviderApiManagerBase implements IPro
      * @return an empty string if it fails, the response body if not.
      */
     private String downloadFromApiUrlWithProviderCA(String path, Provider provider) {
-        String baseUrl = provider.getApiUrlString();
+        String baseUrl = provider.getApiUrl();
         String urlString = baseUrl + path;
         return downloadFromUrlWithProviderCA(urlString, provider);
     }
@@ -594,7 +634,7 @@ public class ProviderApiManagerV3 extends ProviderApiManagerBase implements IPro
 
     private boolean canConnect(Provider provider, Bundle result, int tries) {
         JSONObject errorJson = new JSONObject();
-        String providerUrl = provider.getApiUrlString() + "/provider.json";
+        String providerUrl = provider.getApiUrl() + "/provider.json";
 
         OkHttpClient okHttpClient = clientGenerator.initSelfSignedCAHttpClient(provider.getCaCert(), getProxyPort(), errorJson);
         if (okHttpClient == null) {

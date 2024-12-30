@@ -212,6 +212,10 @@
     <string name="provider_description_riseup">Riseup provides online communication tools for people and groups working on liberatory social change. We are a project to create democratic alternatives and practice self-determination by controlling our own secure means of communications.</string>
     <string name="next">Next</string>
     <string name="add_provider_description">Bitmask connects to trusted providers that are not publicly listed. Enter your provider’s url below.</string>
+    <string name="add_provider_prompt">Enter the provider’s URL here.</string>
+    <string name="invite_code_provider_description">Bitmask allows you to connect to providers using a private Invite Code. </string>
+    <string name="invite_code_provider_prompt">Enter your trusted Invite Code here.</string>
+    <string name="qr_scanner_prompt">Scan QR Code</string>
     <string name="provider_description_calyx">Calyx is a non-profit education and research organization devoted to studying, testing, developing and implementing privacy technology and tools to promote free speech, free expression, civic engagement and privacy rights on the internet and in the mobile communications industry.</string>
     <string name="title_circumvention_setup">Do You Require Censorship Circumvention?</string>
     <string name="circumvention_setup_description">If you live where the internet is censored you can use our censorship circumvention options to access all internet services. These options will slow down your connection!</string>
@@ -238,4 +242,24 @@
     <string name="setup_success_description">Click the button below to connect</string>
     <string name="permission_rejected">Permission request rejected.</string>
     <string name="login_not_supported">The current app version doesn\'t support logins, which you need to update your VPN certificate for this provider.</string>
+    <string name="select_language">Select Language</string>
+    <string name="syntax_check">Syntax Check:</string>
+    <string name="validation_status_success">Good</string>
+    <string name="validation_status_failure">Bad</string>
+    <string name="enter_invite_code">Enter invite Code</string>
+    <string name="scan_qr_code">Scan QR Code</string>
+    <string name="invalid_code">Invalid code</string>
+    <string name="automatic_bridge">Automatic (recommended)</string>
+    <string name="automatic_bridge_description">Connection wil be attemptd using the best available birdges and protocols.</string>
+    <string name="manual_bridge">Manual Configuration</string>
+    <string name="manual_bridge_description">Select private bridges and specific protocols</string>
+    <string name="censorship_circumvention_description">Manual configuration requires technical understanding. Proceed with caution.</string>
+    <string name="discovery">Discovery</string>
+    <string name="discovery_description">Censors can block the discovery of critical configuration information from your provider. Choose a circumvention option to bypass blocks.</string>
+    <string name="automatically_select">Automatically select</string>
+    <string name="invite_proxy">Invite Proxy</string>
+    <string name="tunnelling">Tunneling</string>
+    <string name="tunnelling_description">Censors can block access to the open internet. Choose a circumvention option to bypass blocks.</string>
+    <string name="port_hopping">Port Hopping</string>
+    <string name="port_hopping_description">"Censors use traffic analysis to block access to the open internet. Port Hopping can make this harder for them. "</string>
 </resources>

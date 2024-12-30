@@ -17,8 +17,10 @@
 
 package se.leap.bitmaskclient.providersetup;
 
-import static se.leap.bitmaskclient.R.string.vpn_certificate_is_invalid;
-import static se.leap.bitmaskclient.base.models.Constants.BROADCAST_RESULT_KEY;
+import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_MODELS_BRIDGES;
+import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_MODELS_EIPSERVICE;
+import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_MODELS_GATEWAYS;
+import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_MODELS_PROVIDER;
 import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_MOTD;
 import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_MOTD_HASHES;
 import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_MOTD_LAST_SEEN;
@@ -31,30 +33,19 @@ import static se.leap.bitmaskclient.base.models.Provider.PROVIDER_API_IP;
 import static se.leap.bitmaskclient.base.models.Provider.PROVIDER_IP;
 import static se.leap.bitmaskclient.base.utils.CertificateHelper.getFingerprintFromCertificate;
 import static se.leap.bitmaskclient.base.utils.ConfigHelper.getDomainFromMainURL;
-import static se.leap.bitmaskclient.base.utils.PreferenceHelper.deleteProviderDetailsFromPreferences;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.getFromPersistedProvider;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.getLongFromPersistedProvider;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.getStringSetFromPersistedProvider;
-import static se.leap.bitmaskclient.base.utils.PrivateKeyHelper.ED_25519_KEY_BEGIN;
-import static se.leap.bitmaskclient.base.utils.PrivateKeyHelper.ED_25519_KEY_END;
-import static se.leap.bitmaskclient.base.utils.PrivateKeyHelper.RSA_KEY_BEGIN;
-import static se.leap.bitmaskclient.base.utils.PrivateKeyHelper.RSA_KEY_END;
-import static se.leap.bitmaskclient.base.utils.PrivateKeyHelper.parsePrivateKeyFromString;
 
 import android.content.Intent;
 import android.content.res.Resources;
-import android.os.Bundle;
-import android.util.Base64;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPrivateKey;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -62,7 +53,6 @@ import java.util.concurrent.TimeoutException;
 import se.leap.bitmaskclient.base.models.Provider;
 import se.leap.bitmaskclient.base.utils.ConfigHelper;
 import se.leap.bitmaskclient.base.utils.PreferenceHelper;
-import se.leap.bitmaskclient.base.utils.PrivateKeyHelper;
 
 /**
  * Implements the logic of the http api calls. The methods of this class needs to be called from
@@ -72,12 +62,15 @@ import se.leap.bitmaskclient.base.utils.PrivateKeyHelper;
 public abstract class ProviderApiManagerBase {
 
     private final static String TAG = ProviderApiManagerBase.class.getName();
+    public static final String PROXY_HOST = "127.0.0.1";
+    public static final String SOCKS_PROXY_SCHEME = "socks5://";
 
     public interface ProviderApiServiceCallback {
         void broadcastEvent(Intent intent);
         boolean startTorService() throws InterruptedException, IllegalStateException, TimeoutException;
         void stopTorService();
         int getTorHttpTunnelPort();
+        int getTorSocksProxyPort();
         boolean hasNetworkConnection();
         void saveProvider(Provider p);
     }
@@ -98,7 +91,6 @@ public abstract class ProviderApiManagerBase {
 
     void resetProviderDetails(Provider provider) {
         provider.reset();
-        deleteProviderDetailsFromPreferences(provider.getDomain());
     }
 
     protected boolean isValidJson(String jsonString) {
@@ -143,7 +135,7 @@ public abstract class ProviderApiManagerBase {
     }
 
     protected void getPersistedProviderUpdates(Provider provider) {
-        String providerDomain = getDomainFromMainURL(provider.getMainUrlString());
+        String providerDomain = getDomainFromMainURL(provider.getMainUrl());
         if (hasUpdatedProviderDetails(providerDomain)) {
             provider.setCaCert(getPersistedProviderCA(providerDomain));
             provider.define(getPersistedProviderDefinition(providerDomain));
@@ -156,6 +148,10 @@ public abstract class ProviderApiManagerBase {
             provider.setMotdLastSeenHashes(getPersistedMotdHashes(providerDomain));
             provider.setLastMotdUpdate(getPersistedMotdLastUpdate(providerDomain));
             provider.setMotdJson(getPersistedMotd(providerDomain));
+            provider.setModelsProvider(getFromPersistedProvider(PROVIDER_MODELS_PROVIDER, providerDomain));
+            provider.setService(getFromPersistedProvider(PROVIDER_MODELS_EIPSERVICE, providerDomain));
+            provider.setGateways(getFromPersistedProvider(PROVIDER_MODELS_GATEWAYS, providerDomain));
+            provider.setBridges(getFromPersistedProvider(PROVIDER_MODELS_BRIDGES, providerDomain));
         }
     }
 
@@ -219,43 +215,4 @@ public abstract class ProviderApiManagerBase {
         return PreferenceHelper.hasKey(Provider.KEY + "." + domain) && PreferenceHelper.hasKey(CA_CERT + "." + domain);
     }
 
-    protected Bundle loadCertificate(Provider provider, String certString) {
-        Bundle result = new Bundle();
-        if (certString == null) {
-            eventSender.setErrorResult(result, vpn_certificate_is_invalid, null);
-            return result;
-        }
-
-        try {
-            // API returns concatenated cert & key.  Split them for OpenVPN options
-            String certificateString = null, keyString = null;
-            String[] certAndKey = certString.split("(?<=-\n)");
-            for (int i = 0; i < certAndKey.length - 1; i++) {
-                if (certAndKey[i].contains("KEY")) {
-                    keyString = certAndKey[i++] + certAndKey[i];
-                } else if (certAndKey[i].contains("CERTIFICATE")) {
-                    certificateString = certAndKey[i++] + certAndKey[i];
-                }
-            }
-
-            PrivateKey key = parsePrivateKeyFromString(keyString);
-            keyString = Base64.encodeToString(key.getEncoded(), Base64.DEFAULT);
-
-            if (key instanceof RSAPrivateKey) {
-                provider.setPrivateKeyString(RSA_KEY_BEGIN + keyString + RSA_KEY_END);
-            } else {
-                provider.setPrivateKeyString(ED_25519_KEY_BEGIN + keyString + ED_25519_KEY_END);
-            }
-
-            ArrayList<X509Certificate> certificates = ConfigHelper.parseX509CertificatesFromString(certificateString);
-            certificates.get(0).checkValidity();
-            certificateString = Base64.encodeToString(certificates.get(0).getEncoded(), Base64.DEFAULT);
-            provider.setVpnCertificate( "-----BEGIN CERTIFICATE-----\n" + certificateString + "-----END CERTIFICATE-----");
-            result.putBoolean(BROADCAST_RESULT_KEY, true);
-        } catch (CertificateException | NullPointerException e) {
-            e.printStackTrace();
-            eventSender.setErrorResult(result, vpn_certificate_is_invalid, null);
-        }
-        return result;
-    }
-}
+   }
