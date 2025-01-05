@@ -1,1 +1,1 @@
-• Založeno na aplikaci Bitmask v1.3.1
+• Založeno na Bitmask v1.3.1
