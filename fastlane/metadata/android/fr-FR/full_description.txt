@@ -1,4 +1,4 @@
-Avec CalyxVPN, vous pouvez crypter en toute sécurité l'ensemble de votre trafic réseau et l'acheminer via l'Institut Calyx.
+Avec CalyxVPN, vous pouvez chiffrer en toute sécurité l'ensemble de votre trafic réseau et l'acheminer via l'Institut Calyx.
 
 - VPN anonyme : Pas de compte utilisateur et pas d'enregistrement.
 - Adresse IP anonyme : Lorsque la connexion VPN est active, tous les serveurs sur Internet vous verront comme provenant d'une adresse IP anonyme hébergée par Calyx.
