@@ -1,7 +1,7 @@
 package se.leap.bitmaskclient.base.utils;
 
 import static android.content.Context.MODE_PRIVATE;
-import static se.leap.bitmaskclient.base.fragments.CensorshipCircumventionFragment.TUNNELING_NONE;
+import static se.leap.bitmaskclient.base.fragments.CensorshipCircumventionFragment.TUNNELING_AUTOMATICALLY;
 import static se.leap.bitmaskclient.base.fragments.CensorshipCircumventionFragment.TUNNELING_OBFS4;
 import static se.leap.bitmaskclient.base.fragments.CensorshipCircumventionFragment.TUNNELING_OBFS4_KCP;
 import static se.leap.bitmaskclient.base.models.Constants.ALLOW_EXPERIMENTAL_TRANSPORTS;
@@ -65,15 +65,13 @@ import androidx.annotation.WorkerThread;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
 
-import com.google.gson.Gson;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -81,9 +79,6 @@ import java.util.Set;
 
 import de.blinkt.openvpn.VpnProfile;
 import de.blinkt.openvpn.core.NativeUtils;
-import io.swagger.client.JSON;
-import mobile.BitmaskMobile;
-import mobilemodels.BitmaskMobileCore;
 import se.leap.bitmaskclient.BuildConfig;
 import se.leap.bitmaskclient.base.models.Introducer;
 import se.leap.bitmaskclient.base.models.Provider;
@@ -218,20 +213,17 @@ public class PreferenceHelper {
     public static HashMap<String, Provider> getCustomProviders() {
         Set<String> providerDomains = getCustomProviderDomains();
         HashMap<String, Provider> customProviders = new HashMap<>();
-        if (providerDomains.size() > 0) {
-            for (String domain : providerDomains) {
-                String mainURL = preferences.getString(Provider.MAIN_URL + "." + domain, null);
-                if (mainURL != null) {
-                    Introducer introducer = null;
-                    try {
-                       introducer = Introducer.fromUrl(BitmaskCoreProvider.getBitmaskMobile().getIntroducerURLByDomain(domain));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    customProviders.put(mainURL, Provider.createCustomProvider(mainURL, domain, introducer));
+        for (String domain : providerDomains) {
+            String mainURL = preferences.getString(Provider.MAIN_URL + "." + domain, null);
+            if (mainURL != null) {
+                Introducer introducer = null;
+                try {
+                   introducer = Introducer.fromUrl(BitmaskCoreProvider.getBitmaskMobile().getIntroducerURLByDomain(domain));
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+                customProviders.put(mainURL, Provider.createCustomProvider(mainURL, domain, introducer));
             }
-
         }
 
         return customProviders;
@@ -491,6 +483,10 @@ public class PreferenceHelper {
         return hasKey(USE_SNOWFLAKE);
     }
 
+    public static void resetSnowflakeSettings() {
+        removeKey(USE_SNOWFLAKE);
+    }
+
     public static Boolean getUseSnowflake() {
         return getBoolean(USE_SNOWFLAKE, true);
     }
@@ -619,12 +615,8 @@ public class PreferenceHelper {
         return getUseTunnel() == TUNNELING_OBFS4_KCP;
     }
 
-    public static boolean usesManualBridges(){
-        return getUseSnowflake() || usesSpecificTunnel() || getUsePortHopping();
-    }
-
-    public static boolean usesSpecificTunnel() {
-        return getUseObfs4() || getUseObfs4Kcp();
+    public static boolean useManualBridgeSettings(){
+        return (hasSnowflakePrefs() && getUseSnowflake()) || getUseObfs4() || getUseObfs4Kcp() || getUsePortHopping();
     }
 
     public static void setUseTunnel(int tunnel) {
@@ -632,7 +624,7 @@ public class PreferenceHelper {
     }
 
     public static int getUseTunnel() {
-        return getInt(USE_TUNNEL, TUNNELING_NONE);
+        return getInt(USE_TUNNEL, TUNNELING_AUTOMATICALLY);
     }
 
     public static boolean useIpv6Firewall() {
@@ -706,6 +698,12 @@ public class PreferenceHelper {
     public static Set<String> getExcludedApps() {
         synchronized (LOCK) {
             return preferences.getStringSet(EXCLUDED_APPS, new HashSet<>());
+        }
+    }
+
+    public static void removeKey(String key) {
+        synchronized (LOCK) {
+            preferences.edit().remove(key).apply();
         }
     }
 
@@ -851,7 +849,7 @@ public class PreferenceHelper {
 
             @Override
             public byte[] getByteArray(String s) {
-                String encodedString = preferences.getString(s, "");
+                String encodedString = preferences.getString(s, Arrays.toString(Base64.encode(new byte[0], Base64.DEFAULT)));
                 try {
                     return Base64.decode(encodedString, Base64.DEFAULT);
                 } catch (IllegalArgumentException e) {

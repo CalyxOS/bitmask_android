@@ -7,11 +7,16 @@ import static androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE;
 import static se.leap.bitmaskclient.R.string.app_name;
 import static se.leap.bitmaskclient.R.string.description_configure_provider;
 import static se.leap.bitmaskclient.R.string.description_configure_provider_circumvention;
+import static se.leap.bitmaskclient.base.fragments.CensorshipCircumventionFragment.TUNNELING_AUTOMATICALLY;
 import static se.leap.bitmaskclient.base.models.Constants.BROADCAST_RESULT_CODE;
 import static se.leap.bitmaskclient.base.models.Constants.BROADCAST_RESULT_KEY;
 import static se.leap.bitmaskclient.base.models.Constants.PROVIDER_KEY;
 import static se.leap.bitmaskclient.base.utils.BuildConfigHelper.isDefaultBitmask;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.getUseSnowflake;
+import static se.leap.bitmaskclient.base.utils.PreferenceHelper.hasSnowflakePrefs;
+import static se.leap.bitmaskclient.base.utils.PreferenceHelper.setUsePortHopping;
+import static se.leap.bitmaskclient.base.utils.PreferenceHelper.setUseTunnel;
+import static se.leap.bitmaskclient.base.utils.PreferenceHelper.useSnowflake;
 import static se.leap.bitmaskclient.base.utils.ViewHelper.animateContainerVisibility;
 import static se.leap.bitmaskclient.providersetup.ProviderAPI.CORRECTLY_DOWNLOADED_VPN_CERTIFICATE;
 import static se.leap.bitmaskclient.providersetup.ProviderAPI.DOWNLOAD_VPN_CERTIFICATE;
@@ -48,6 +53,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.List;
 
+import de.blinkt.openvpn.core.VpnStatus;
 import se.leap.bitmaskclient.R;
 import se.leap.bitmaskclient.base.models.Constants;
 import se.leap.bitmaskclient.base.models.Provider;
@@ -126,7 +132,7 @@ public class ConfigureProviderFragment extends BaseSetupFragment implements Prop
     public void onFragmentSelected() {
         super.onFragmentSelected();
         ignoreProviderAPIUpdates = false;
-        binding.detailContainer.setVisibility(getUseSnowflake() ? VISIBLE : GONE);
+        binding.detailContainer.setVisibility(!VpnStatus.isVPNActive() && hasSnowflakePrefs() && getUseSnowflake() ? VISIBLE : GONE);
         binding.tvCircumventionDescription.setText(getUseSnowflake() ? getString(description_configure_provider_circumvention, getString(app_name)) : getString(description_configure_provider, getString(app_name)));
         if (!isDefaultBitmask()) {
             Drawable drawable = ResourcesCompat.getDrawable(getResources(), R.drawable.setup_progress_spinner, null);
@@ -138,6 +144,14 @@ public class ConfigureProviderFragment extends BaseSetupFragment implements Prop
         if (ProviderSetupObservable.isSetupRunning()) {
             handleResult(ProviderSetupObservable.getResultCode(), ProviderSetupObservable.getResultData(), true);
         } else {
+            Provider provider = setupActivityCallback.getSelectedProvider();
+            if (provider != null && provider.hasIntroducer()) {
+                // enable automatic selection of bridges
+                useSnowflake(false);
+                setUseTunnel(TUNNELING_AUTOMATICALLY);
+                setUsePortHopping(false);
+                PreferenceHelper.useBridges(true);
+            }
             ProviderSetupObservable.startSetup();
             Bundle parameters = new Bundle();
             parameters.putString(Constants.COUNTRYCODE, PreferenceHelper.getBaseCountry());

@@ -5,6 +5,7 @@ import static se.leap.bitmaskclient.base.utils.PreferenceHelper.getUseObfs4Kcp;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.getUsePortHopping;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.getUseSnowflake;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.hasSnowflakePrefs;
+import static se.leap.bitmaskclient.base.utils.PreferenceHelper.resetSnowflakeSettings;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.setUsePortHopping;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.setUseTunnel;
 import static se.leap.bitmaskclient.base.utils.PreferenceHelper.useBridges;
@@ -29,11 +30,11 @@ import se.leap.bitmaskclient.databinding.FCensorshipCircumventionBinding;
 import se.leap.bitmaskclient.eip.EipCommand;
 
 public class CensorshipCircumventionFragment extends Fragment {
-    public static int DISCOVERY_NONE = 100200000;
+    public static int DISCOVERY_AUTOMATICALLY = 100200000;
     public static int DISCOVERY_SNOWFLAKE = 100200001;
     public static int DISCOVERY_INVITE_PROXY = 100200002;
 
-    public static int TUNNELING_NONE = 100300000;
+    public static int TUNNELING_AUTOMATICALLY = 100300000;
     public static int TUNNELING_OBFS4 = 100300001;
     public static int TUNNELING_OBFS4_KCP = 100300002;
 
@@ -68,20 +69,20 @@ public class CensorshipCircumventionFragment extends Fragment {
 
 
     private void initDiscovery() {
-
-        RadioButton noneRadioButton = new RadioButton(binding.getRoot().getContext());
-        noneRadioButton.setText(getText(R.string.automatically_select));
-        noneRadioButton.setId(DISCOVERY_NONE);
-        noneRadioButton.setChecked(!(hasSnowflakePrefs() && getUseSnowflake()) && !ProviderObservable.getInstance().getCurrentProvider().hasIntroducer());
-        binding.discoveryRadioGroup.addView(noneRadioButton);
+        boolean hasIntroducer = ProviderObservable.getInstance().getCurrentProvider().hasIntroducer();
+        RadioButton automaticallyRadioButton = new RadioButton(binding.getRoot().getContext());
+        automaticallyRadioButton.setText(getText(R.string.automatically_select));
+        automaticallyRadioButton.setId(DISCOVERY_AUTOMATICALLY);
+        automaticallyRadioButton.setChecked(!hasSnowflakePrefs() && !hasIntroducer);
+        binding.discoveryRadioGroup.addView(automaticallyRadioButton);
 
         RadioButton snowflakeRadioButton = new RadioButton(binding.getRoot().getContext());
         snowflakeRadioButton.setText(getText(R.string.snowflake));
         snowflakeRadioButton.setId(DISCOVERY_SNOWFLAKE);
-        snowflakeRadioButton.setChecked(hasSnowflakePrefs() && getUseSnowflake());
+        snowflakeRadioButton.setChecked(!hasIntroducer && hasSnowflakePrefs() && getUseSnowflake());
         binding.discoveryRadioGroup.addView(snowflakeRadioButton);
 
-        if (ProviderObservable.getInstance().getCurrentProvider().hasIntroducer()) {
+        if (hasIntroducer) {
             RadioButton inviteProxyRadioButton = new RadioButton(binding.getRoot().getContext());
             inviteProxyRadioButton.setText(getText(R.string.invite_proxy));
             inviteProxyRadioButton.setId(DISCOVERY_INVITE_PROXY);
@@ -91,15 +92,13 @@ public class CensorshipCircumventionFragment extends Fragment {
 
         binding.discoveryRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
             useBridges(true);
-            if (checkedId == DISCOVERY_NONE) {
-                useSnowflake(false);
+            if (checkedId == DISCOVERY_AUTOMATICALLY) {
+                resetSnowflakeSettings();
             } else if (checkedId == DISCOVERY_SNOWFLAKE) {
                 useSnowflake(true);
             } else if (checkedId == DISCOVERY_INVITE_PROXY) {
                 useSnowflake(false);
             }
-
-            tryReconnectVpn();
         });
     }
 
@@ -115,7 +114,7 @@ public class CensorshipCircumventionFragment extends Fragment {
         RadioButton noneRadioButton = new RadioButton(binding.getRoot().getContext());
         noneRadioButton.setText(getText(R.string.automatically_select));
         noneRadioButton.setChecked(!getUseObfs4() && !getUseObfs4Kcp());
-        noneRadioButton.setId(TUNNELING_NONE);
+        noneRadioButton.setId(TUNNELING_AUTOMATICALLY);
         binding.tunnelingRadioGroup.addView(noneRadioButton);
 
         if (ProviderObservable.getInstance().getCurrentProvider().supportsObfs4()) {
