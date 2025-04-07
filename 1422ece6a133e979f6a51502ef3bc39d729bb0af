@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "74d357ab_d7258221",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2025-04-07T22:40:39Z",
+      "side": 1,
+      "message": "Is this still useful? Especially with translations.\n\nWe should either add useful info from upstream here, or stop translating / having this in the first place",
+      "revId": "1422ece6a133e979f6a51502ef3bc39d729bb0af",
+      "serverId": "35266860-6252-469c-a67d-185064479fc0"
+    }
+  ]
+}
