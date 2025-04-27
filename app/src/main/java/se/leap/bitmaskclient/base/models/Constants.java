@@ -53,6 +53,7 @@ public interface Constants {
     String OBFUSCATION_PINNING_PORT = "obfuscation_pinning_port";
     String OBFUSCATION_PINNING_CERT = "obfuscation_pinning_cert";
     String OBFUSCATION_PINNING_KCP = "obfuscation_pinning_udp";
+    String OBFUSCATION_PINNING_PROTOCOL = "obfuscation_pinning_protocol";
     String OBFUSCATION_PINNING_LOCATION = "obfuscation_pinning_location";
     String USE_SYSTEM_PROXY = "usesystemproxy";
     String CUSTOM_PROVIDER_DOMAINS = "custom_provider_domains";
@@ -192,6 +193,7 @@ public interface Constants {
     String UDP = "udp";
     String TCP = "tcp";
     String KCP = "kcp";
+    String QUIC = "quic";
     String CAPABILITIES = "capabilities";
     String TRANSPORT = "transport";
     String TYPE = "type";
@@ -202,6 +204,10 @@ public interface Constants {
     String ENDPOINTS = "endpoints";
     String PORT_SEED = "port_seed";
     String PORT_COUNT = "port_count";
+    String HOP_JITTER = "hop_jitter";
+    String MIN_HOP_PORT = "min_hop_port";
+    String MAX_HOP_PORT = "max_hop_port";
+    String MIN_HOP_SECONDS = "min_hop_seconds";
     String EXPERIMENTAL = "experimental";
     String VERSION = "version";
     String NAME = "name";
