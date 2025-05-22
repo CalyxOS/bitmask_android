@@ -1,0 +1,11 @@
+Con CalyxVPN, potete cifrare in modo sicuro tutto il vostro traffico di rete e instradarlo attraverso il Calyx Institute.
+
+- VPN anonima: nessun account utente e nessuna registrazione.
+- Indirizzo IP anonimo: Quando la connessione VPN è attiva, tutti i server su Internet vi vedranno come provenienti da un IP anonimo ospitato da Calyx.
+- Gratuito: si tratta di un servizio gratuito fornito dal Calyx Institute.
+- Open Source: Sia il client che il server sono al 100% software libero e open source.
+- Nessuna perdita di IPv6: CalyxVPN non perde il traffico IPv6 (richiede i permessi di root).
+- Nessuna perdita DNS: CalyxVPN è configurato sia sul client che sul server per evitare qualsiasi perdita di DNS. Tutte le richieste DNS sono gestite in modo anonimo da Calyx quando la VPN è attiva.
+- Elusione: Quando l'opzione “Use Bridges” è attivata, tutto il traffico viene nascosto come normale traffico web, al fine di aggirare alcuni sistemi di censura che bloccano il traffico VPN.
+
+Come per tutte le VPN, CalyxVPN aggiunge sicurezza ai vostri dati solo nel momento in cui scorrono sulla rete. Non può proteggere il contenuto dei dati memorizzati o forniti a un sito web. Inoltre, non impedisce la pubblicità e il tracciamento nelle app o nel browser web (tranne quando il tracciamento si basa sull'indirizzo IP).
