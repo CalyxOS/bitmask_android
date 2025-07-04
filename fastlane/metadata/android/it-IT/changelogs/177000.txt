@@ -1,0 +1,1 @@
+- Basato su Bitmask v1.5.0RC1
