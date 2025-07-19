@@ -1,0 +1,11 @@
+CalyxVPN:n avulla voit turvallisesti salata kaiken verkkoliikenteesi ja reitittää sen Calyx-instituutin kautta.
+
+• Anonyymi VPN-palvelu: Ei käyttäjätilejä eikä lokitietoja.
+• Anonyymi IP-osoite: Kun VPN-yhteys on aktiivinen, kaikki internetin palvelimet näkevät sinut tulevan Calyxin isännöimästä anonyymistä IP-osoitteesta.
+• Ilmainen: Tämä on Calyx-instituutin tarjoama ilmainen palvelu.
+• Avoin lähdekoodi: Sekä asiakasohjelma että palvelin ovat 100 % ilmaisia ja avoimen lähdekoodin ohjelmistoja.
+• Ei IPv6-vuotoja: CalyxVPN ei vuoda IPv6-liikennettä (vaatii rootin).
+• Ei DNS-vuotoja: CalyxVPN on määritetty sekä asiakasohjelmassa että palvelimella estämään DNS-vuodot. Calyx käsittelee kaikki DNS-pyynnöt anonyymisti, kun VPN-palvelu on päällä.
+• Kiertäminen: Kun "Käytä siltoja" -vaihtoehto on otettu käyttöön, kaikki liikenteesi piilotetaan normaalina verkkoliikenteenä, jotta voidaan kiertää joitakin VPN-liikennettä estäviä sensuurijärjestelmiä.
+
+Kuten kaikki VPN-palvelut, CalyxVPN lisää vain tietoturvaa niiden liikkuessa verkossa. Se ei voi suojata verkkosivustolle tallennettujen tai sille antamiesi tietojen sisältöä. Se ei myöskään estä mainoksia ja seurantaa sovelluksissasi tai verkkoselaimessasi (paitsi silloin, kun seuranta perustuu IP-osoitteeseesi).
