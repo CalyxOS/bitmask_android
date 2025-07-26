@@ -1,2 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+    <string name="donate_message_calyx">Calyx VPN on Calyx-instituutin helppokäyttöinen, nopea ja turvallinen VPN-palvelu. Voit lukea lisää ja lahjoittaa osoitteessa https://calyxinstitute.org.</string>
+    <string name="terms_of_service_calyx">Käyttämällä tätä sovellusta hyväksyt käyttöehdot, jotka ovat saatavilla osoitteessa https://calyxinstitute.org/legal/terms-of-service. Tämä palvelu tarjotaan sellaisenaan ilman takuuta, ja se on tarkoitettu ihmisille, jotka työskentelevät tehdäkseen maailmasta paremman paikan.</string>
+</resources>
