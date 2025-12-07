@@ -1,2 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+    <string name="donate_message_calyx">Calyx VPN - vienkāršs, ātrs un drošs VPN pakalpojums no Calyx institūta. Jūs varat uzzināt vairāk un ziedot https://calyxinstitute.org vietnē.</string>
+</resources>
