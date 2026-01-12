@@ -1,0 +1,3 @@
+• Berdasarkan Bitmask v1.1.8
+• Sertifikat CA baru
+• Pembaruan terjemahan
